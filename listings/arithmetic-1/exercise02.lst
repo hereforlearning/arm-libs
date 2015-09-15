@@ -1,0 +1,502 @@
+
+
+
+ARM Macro Assembler    Page 1 Lab Exercise Two Basic Arithmetic Operations
+
+
+    1 00000000                 TTL              Lab Exercise Two Basic Arithmet
+ic Operations
+    2 00000000         
+    3 00000000         ;*******************************************************
+                       *********
+    4 00000000         ;A basic PEMDAS Arithmetic Operation.
+    5 00000000         ;Using numeric inputs, Calculate the result and store in
+                       
+    6 00000000         ;register R0.
+    7 00000000         ;Expression: -5 + 62 - (9/4) - (7*9) + 58 + 17
+    8 00000000         ;Name:  Justin Peterson
+    9 00000000         ;Date:  09/03/2015
+   10 00000000         ;Class:  CMPE-250
+   11 00000000         ;Section:  01L3 TR 2-4PM
+   12 00000000         ;-------------------------------------------------------
+                       --------
+   13 00000000         ;Keil Simulator Template for KL46
+   14 00000000         ;R. W. Melton
+   15 00000000         ;January 23, 2015
+   16 00000000         ;*******************************************************
+                       *********
+   17 00000000         ;Assembler directives
+   18 00000000                 THUMB
+   20 00000000         ;*******************************************************
+                       *********
+   21 00000000         ;EQUates
+   22 00000000         ;Vectors
+   23 00000000 000000C0 
+                       VECTOR_TABLE_SIZE
+                               EQU              0x000000C0
+   24 00000000 00000004 
+                       VECTOR_SIZE
+                               EQU              4           ;Bytes per vector
+   25 00000000         
+   26 00000000         ;Shift Amounts
+   27 00000000         ;*******************************************************
+                       *********
+   28 00000000 00000002 
+                       DIV4    EQU              2           ;Logical shift by 2
+                                                             = 2^2 = 4
+   29 00000000 00000003 
+                       MULT8   EQU              3           ;Logical shift by 3
+                                                             = 2^3 = 8
+   30 00000000         
+   31 00000000         ;Stack
+   32 00000000 00000100 
+                       SSTACK_SIZE
+                               EQU              0x00000100
+   33 00000000         ;*******************************************************
+                       *********
+   34 00000000         ;Program
+   35 00000000         ;Linker requires Reset_Handler
+   36 00000000                 AREA             MyCode,CODE,READONLY
+   37 00000000                 ENTRY
+   38 00000000                 EXPORT           Reset_Handler
+   39 00000000         Reset_Handler
+   40 00000000         main
+   41 00000000         ;-------------------------------------------------------
+                       --------
+
+
+
+ARM Macro Assembler    Page 2 Lab Exercise Two Basic Arithmetic Operations
+
+
+   42 00000000         ;>>>>> begin main program code <<<<<
+   43 00000000         
+   44 00000000         ;-5 + 62
+   45 00000000 2005            MOVS             R0, #5      ;Store 5
+   46 00000002 4240            RSBS             R0, R0, #0  ;Invert 5 to -5
+   47 00000004 213E            MOVS             R1, #62     ;Store 62
+   48 00000006 1840            ADDS             R0, R0, R1  ;R0 = -5 + 62
+   49 00000008         
+   50 00000008 2109            MOVS             R1, #9      ;Store 9
+   51 0000000A 1089            ASRS             R1, R1, #DIV4 ;R1 = 9/4 = 2
+   52 0000000C         
+   53 0000000C         ;inst 1 - inst 2
+   54 0000000C 1A41            SUBS             R1, R0, R1  ;R1 = 57 - 2 = 55
+   55 0000000E         
+   56 0000000E         ;9 * 7 evaluated as 9*(2)^3 + 9
+   57 0000000E 2207            MOVS             R2, #7      ;Store 9
+   58 00000010 00D2            LSLS             R2, R2, #MULT8 
+                                                            ;R2 = 7*(2)^3 = 56
+   59 00000012 1DD2            ADDS             R2, R2, #7  ;R2 = 56 + 7 = 63
+   60 00000014         
+   61 00000014 1A88            SUBS             R0, R1, R2  ;R0 = 55 - 63
+   62 00000016         
+   63 00000016 213A            MOVS             R1, #58     ;Store 58 in R1
+   64 00000018 2211            MOVS             R2, #17     ;Store 17 in R2
+   65 0000001A 1840            ADDS             R0, R0, R1  ;-8 + 58 = 50 
+   66 0000001C 1880            ADDS             R0, R0, R2  ;50 + 17 = 67 base 
+                                                            10
+   67 0000001E         
+   68 0000001E         ;>>>>>   end main program code <<<<<
+   69 0000001E         ;Stay here
+   70 0000001E E7FE            B                .
+   71 00000020         ;-------------------------------------------------------
+                       --------
+   72 00000020         ;>>>>> begin subroutine code <<<<<
+   73 00000020         ;>>>>>   end subroutine code <<<<<
+   74 00000020                 ALIGN
+   75 00000020         ;*******************************************************
+                       *********
+   76 00000020         ;Vector Table Mapped to Address 0 at Reset
+   77 00000020         ;Linker requires __Vectors to be exported
+   78 00000020                 AREA             RESET, DATA, READONLY
+   79 00000000                 EXPORT           __Vectors
+   80 00000000                 EXPORT           __Vectors_End
+   81 00000000                 EXPORT           __Vectors_Size
+   82 00000000         __Vectors
+   83 00000000         ;ARM core vectors
+   84 00000000 00000000        DCD              __initial_sp ;00:end of stack
+   85 00000004 00000000        DCD              Reset_Handler ;reset vector
+   86 00000008 00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+
+
+
+ARM Macro Assembler    Page 3 Lab Exercise Two Basic Arithmetic Operations
+
+
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00               SPACE            (VECTOR_TABLE_SIZE - (2 * VECTO
+R_SIZE))
+   87 000000C0         __Vectors_End
+   88 000000C0 000000C0 
+                       __Vectors_Size
+                               EQU              __Vectors_End - __Vectors
+   89 000000C0                 ALIGN
+   90 000000C0         ;*******************************************************
+                       *********
+
+
+
+ARM Macro Assembler    Page 4 Lab Exercise Two Basic Arithmetic Operations
+
+
+   91 000000C0         ;Constants
+   92 000000C0                 AREA             MyConst,DATA,READONLY
+   93 00000000         ;>>>>> begin constants here <<<<<
+   94 00000000         ;>>>>>   end constants here <<<<<
+   95 00000000         ;*******************************************************
+                       *********
+   96 00000000                 AREA             |.ARM.__at_0x1FFFE000|,DATA,REA
+DWRITE,ALIGN=3
+   97 00000000                 EXPORT           __initial_sp
+   98 00000000         ;Allocate system stack
+   99 00000000                 IF               :LNOT::DEF:SSTACK_SIZE
+  101                          ENDIF
+  102 00000000 00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+
+
+
+ARM Macro Assembler    Page 5 Lab Exercise Two Basic Arithmetic Operations
+
+
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 
+              00       Stack_Mem
+                               SPACE            SSTACK_SIZE
+  103 00000100         __initial_sp
+  104 00000100         ;*******************************************************
+                       *********
+  105 00000100         ;Variables
+  106 00000100                 AREA             MyData,DATA,READWRITE
+  107 00000000         ;>>>>> begin variables here <<<<<
+  108 00000000         ;>>>>>   end variables here <<<<<
+  109 00000000                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0+ --apcs=inter
+work --depend=.\exercise02.d -o.\exercise02.o -IC:\Users\jmp3833\Desktop\RTE -I
+C:\Keil_v5\ARM\PACK\Keil\Kinetis_KLxx_DFP\1.6.0\Device\Include -IC:\Keil_v5\ARM
+\CMSIS\Include --predefine="__UVISION_VERSION SETA 515" --predefine="MKL46Z256x
+xx4 SETA 1" --list=.\exercise02.lst Exercise02.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+MyCode 00000000
+
+Symbol: MyCode
+   Definitions
+      At line 36 in file Exercise02.s
+   Uses
+      None
+Comment: MyCode unused
+Reset_Handler 00000000
+
+Symbol: Reset_Handler
+   Definitions
+      At line 39 in file Exercise02.s
+   Uses
+      At line 38 in file Exercise02.s
+      At line 85 in file Exercise02.s
+
+main 00000000
+
+Symbol: main
+   Definitions
+      At line 40 in file Exercise02.s
+   Uses
+      None
+Comment: main unused
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+RESET 00000000
+
+Symbol: RESET
+   Definitions
+      At line 78 in file Exercise02.s
+   Uses
+      None
+Comment: RESET unused
+__Vectors 00000000
+
+Symbol: __Vectors
+   Definitions
+      At line 82 in file Exercise02.s
+   Uses
+      At line 79 in file Exercise02.s
+      At line 88 in file Exercise02.s
+
+__Vectors_End 000000C0
+
+Symbol: __Vectors_End
+   Definitions
+      At line 87 in file Exercise02.s
+   Uses
+      At line 80 in file Exercise02.s
+      At line 88 in file Exercise02.s
+
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+MyConst 00000000
+
+Symbol: MyConst
+   Definitions
+      At line 92 in file Exercise02.s
+   Uses
+      None
+Comment: MyConst unused
+1 symbol
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.ARM.__at_0x1FFFE000 00000000
+
+Symbol: .ARM.__at_0x1FFFE000
+   Definitions
+      At line 96 in file Exercise02.s
+   Uses
+      None
+Comment: .ARM.__at_0x1FFFE000 unused
+Stack_Mem 00000000
+
+Symbol: Stack_Mem
+   Definitions
+      At line 102 in file Exercise02.s
+   Uses
+      None
+Comment: Stack_Mem unused
+__initial_sp 00000100
+
+Symbol: __initial_sp
+   Definitions
+      At line 103 in file Exercise02.s
+   Uses
+      At line 84 in file Exercise02.s
+      At line 97 in file Exercise02.s
+
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+MyData 00000000
+
+Symbol: MyData
+   Definitions
+      At line 106 in file Exercise02.s
+   Uses
+      None
+Comment: MyData unused
+1 symbol
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+DIV4 00000002
+
+Symbol: DIV4
+   Definitions
+      At line 28 in file Exercise02.s
+   Uses
+      At line 51 in file Exercise02.s
+Comment: DIV4 used once
+MULT8 00000003
+
+Symbol: MULT8
+   Definitions
+      At line 29 in file Exercise02.s
+   Uses
+      At line 58 in file Exercise02.s
+Comment: MULT8 used once
+SSTACK_SIZE 00000100
+
+Symbol: SSTACK_SIZE
+   Definitions
+      At line 32 in file Exercise02.s
+   Uses
+      At line 102 in file Exercise02.s
+Comment: SSTACK_SIZE used once
+VECTOR_SIZE 00000004
+
+Symbol: VECTOR_SIZE
+   Definitions
+      At line 24 in file Exercise02.s
+   Uses
+      At line 86 in file Exercise02.s
+Comment: VECTOR_SIZE used once
+VECTOR_TABLE_SIZE 000000C0
+
+Symbol: VECTOR_TABLE_SIZE
+   Definitions
+      At line 23 in file Exercise02.s
+   Uses
+      At line 86 in file Exercise02.s
+Comment: VECTOR_TABLE_SIZE used once
+__Vectors_Size 000000C0
+
+Symbol: __Vectors_Size
+   Definitions
+      At line 88 in file Exercise02.s
+   Uses
+      At line 81 in file Exercise02.s
+Comment: __Vectors_Size used once
+6 symbols
+349 symbols in table
