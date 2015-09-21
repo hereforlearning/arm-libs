@@ -1,4 +1,4 @@
-            TTL Memory, Conditional Branching, and Debugging Tools
+	            TTL Memory, Conditional Branching, and Debugging Tools
 			
 ;****************************************************************
 ;this program evaluates a system of equations with three
@@ -45,6 +45,7 @@ main
 			LDR R1, =P
 			LDR R2, =Q
 			LDR R3, =R
+
 			LDR R7, =result
 			
 			;Load variable values from addresses into registers
@@ -157,6 +158,7 @@ ENDG
 			LDR R6, =G	  			; R6 <- &G
 			STR R4, [R6, #0]  		; G <- R4
 			
+			MOVS R4, #0 			; Refresh state of R4
 			
 			;Compute for H [P - 2Q + R - 91]
 			;-----------------------------------------
@@ -209,6 +211,9 @@ ENDH
 			
 			;Compute for result [F + G + H]
 			;-----------------------------------------
+			
+			MOVS R4, #0 			; Refresh state of R4
+			
 			LDR R1, =F
 			LDR R2, =G
 			LDR R3, =H
