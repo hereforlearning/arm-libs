@@ -176,8 +176,24 @@ main
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
 
+            ;Initalize UART0 module
+            BL      Init_UART0_Polling
+            
+TAKE_INPUT
+            
+            MOVS R1, #1
+            CMP R1, #1
+            BNE END_PROGRAM
+            
+            BL      GetChar
+            SUBS    R0, R0, #1
+            BL      PutChar
+            
+            B TAKE_INPUT
+            
 ;>>>>>   end main program code <<<<<
 ;Stay here
+END_PROGRAM
             B       .
 ;>>>>> begin subroutine code <<<<<
 
@@ -201,88 +217,7 @@ PollTx
 			POP {R1, R2, R3}
 			
 			BX LR
-			
-Init_UART0_Polling
-			
-			;Allocate R0-2 for Ri=k 
-			;Store prevoius values for restoration
-			PUSH {R0, R1, R2}
-
-			;Select MCGPLLCLK / 2 as UART0 clock source 
-			LDR R0,=SIM_SOPT2
-			LDR R1,=SIM_SOPT2_UART0SRC_MASK 
-			LDR R2,[R0,#0]
-			BICS R2,R2,R1
-			LDR R1,=SIM_SOPT2_UART0_MCGPLLCLK_DIV2 
-			ORRS R2,R2,R1
-			STR R1,[R0,#0]
-			
-			;Enable external connection for UART0 
-			LDR R0,=SIM_SOPT5
-			LDR R1,=SIM_SOPT5_UART0_EXTERN_MASK_CLEAR 
-			LDR R2,[R0,#0]
-			BICS R2,R2,R1 
-			STR R2,[R0,#0]
-			
-			;Enable clock for UART0 module LDR Ri,=SIM_SCGC4
-			LDR R1,=SIM_SCGC4_UART0_MASK
-			LDR R2,[R0,#0]
-			ORRS R2,R2,R1 
-			STR R2,[R0,#0]
-			
-			;Enable clock for Port A module 
-			LDR R0,=SIM_SCGC5
-			LDR R1,=SIM_SCGC5_PORTA_MASK 
-			LDR R2,[R0,#0]
-			ORRS R2,R2,R1 
-			STR R2,[R0,#0]
-			
-			;Connect PORT A Pin 1 (PTA1) to UART0 Rx (J1 Pin 02) 
-			LDR	R0,=PORTA_PCR1
-			LDR	R1,=PORT_PCR_SET_PTA1_UART0_RX 
-			STR	R1,[R0,#0]
-			
-			;Connect PORT A Pin 2 (PTA2) to UART0 Tx (J1 Pin 04) 
-			LDR	R0,=PORTE_PCR0
-			LDR	R1,=PORT_PCR_SET_PTA2_UART0_TX 
-			STR	R1,[R0,#0]
-			
-			;Disable UART0 receiver and transmitter 
-			LDR R0,=UART0_BASE
-			MOVS R1,#UART0_C2_T_R
-			LDRB R2,[R0,#UART0_C2_OFFSET]
-			BICS R2,R2,R1
-			STRB R2,[R0,#UART0_C2_OFFSET] 
-			;Set UART0 for 9600 baud, 8N1 protocol
-			MOVS R1,#UART0_BDH_9600
-			STRB R1,[R0,#UART0_BDH_OFFSET] 
-			MOVS R1,#UART0_BDL_9600
-			STRB R1,[R0,#UART0_BDL0_OFFSET] 
-			MOVS R1,#UART0_C1_8N1
-			STRB R1,[R0,#UART0_C1_OFFSET] 
-			MOVS R1,#UART0_C3_NO_TXINV 
-			STRB R1,[R0,#UART0_C3_OFFSET]
-			MOVS R1,#UART0_C4_NO_MATCH_OSR_16 
-			STRB R1,[R0,#UART0_C4_OFFSET] 
-			MOVS R1,#UART0_C5_NO_DMA_SSR_SYNC 
-			STRB R1,[R0,#UART0_C5_OFFSET] 
-			MOVS R1,#UART0_S1_CLEAR_FLAGS 
-			STRB R1,[R0,#UART0_S1_OFFSET] 
-			MOVS R1, \
-				#UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS 
-			STRB R1,[R0,#UART0_S2_OFFSET]
-		
-			;Enable UART0 receiver and transmitter 
-			MOVS R1,#UART0_C2_T_R
-			STRB R1,[R0,#UART0_C2_OFFSET]
-			
-			;Pop prevous R0-2 values off the stack.
-			POP {R0, R1, R2}
-
-			BX LR
-			
-;-------------------------------------------------------------------
-
+            
 ;Receive a character from UART0
 ;Store in Register R0
 GetChar
@@ -298,6 +233,83 @@ PollRx
 			LDRB R0, [R1, #UART0_D_OFFSET]
 			
 			BX LR
+			
+Init_UART0_Polling
+			
+			;Allocate R0-2 for Ri=k 
+			;Store prevoius values for restoration
+			PUSH {R0, R1, R2}
+
+            ;Select MCGPLLCLK / 2 as UART0 clock source
+             LDR R0,=SIM_SOPT2
+             LDR R1,=SIM_SOPT2_UART0SRC_MASK
+             LDR R2,[R0,#0]
+             BICS R2,R2,R1
+             LDR R1,=SIM_SOPT2_UART0_MCGPLLCLK_DIV2
+             ORRS R2,R2,R1
+             STR R2,[R0,#0]
+            ;Enable external connection for UART0
+             LDR R0,=SIM_SOPT5
+             LDR R1,= SIM_SOPT5_UART0_EXTERN_MASK_CLEAR
+             LDR R2,[R0,#0]
+             BICS R2,R2,R1
+             STR R2,[R0,#0]
+            ;Enable clock for UART0 module
+             LDR R0,=SIM_SCGC4
+             LDR R1,= SIM_SCGC4_UART0_MASK
+             LDR R2,[R0,#0]
+             ORRS R2,R2,R1
+             STR R2,[R0,#0]
+            ;Enable clock for Port A module
+             LDR R0,=SIM_SCGC5
+             LDR R1,= SIM_SCGC5_PORTA_MASK
+             LDR R2,[R0,#0]
+             ORRS R2,R2,R1
+             STR R2,[R0,#0]
+            ;Connect PORT A Pin 1 (PTA1) to UART0 Rx (J1 Pin 02)
+             LDR R0,=PORTA_PCR1
+             LDR R1,=PORT_PCR_SET_PTA1_UART0_RX
+             STR R1,[R0,#0]
+            ;Connect PORT A Pin 2 (PTA2) to UART0 Tx (J1 Pin 04)
+             LDR R0,=PORTA_PCR2
+             LDR R1,=PORT_PCR_SET_PTA2_UART0_TX
+             STR R1,[R0,#0] 
+             
+             ;Disable UART0 receiver and transmitter
+             LDR R0,=UART0_BASE
+             MOVS R1,#UART0_C2_T_R
+             LDRB R2,[R0,#UART0_C2_OFFSET]
+             BICS R2,R2,R1
+             STRB R2,[R0,#UART0_C2_OFFSET]
+            ;Set UART0 for 9600 baud, 8N1 protocol
+             MOVS R1,#UART0_BDH_9600
+             STRB R1,[R0,#UART0_BDH_OFFSET]
+             MOVS R1,#UART0_BDL_9600
+             STRB R1,[R0,#UART0_BDL_OFFSET]
+             MOVS R1,#UART0_C1_8N1
+             STRB R1,[R0,#UART0_C1_OFFSET]
+             MOVS R1,#UART0_C3_NO_TXINV
+             STRB R1,[R0,#UART0_C3_OFFSET]
+             MOVS R1,#UART0_C4_NO_MATCH_OSR_16
+             STRB R1,[R0,#UART0_C4_OFFSET]
+             MOVS R1,#UART0_C5_NO_DMA_SSR_SYNC
+             STRB R1,[R0,#UART0_C5_OFFSET]
+             MOVS R1,#UART0_S1_CLEAR_FLAGS
+             STRB R1,[R0,#UART0_S1_OFFSET]
+             MOVS R1, \
+             #UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS
+             STRB R1,[R0,#UART0_S2_OFFSET] 
+             
+             ;Enable UART0 receiver and transmitter
+             MOVS R1,#UART0_C2_T_R
+             STRB R1,[R0,#UART0_C2_OFFSET] 
+                        
+			;Pop prevous R0-2 values off the stack.
+			POP {R0, R1, R2}
+
+			BX LR
+			
+;-------------------------------------------------------------------
 
 ;>>>>>   end subroutine code <<<<<
             ALIGN

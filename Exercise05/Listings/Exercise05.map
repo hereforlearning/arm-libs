@@ -1,4 +1,4 @@
-Component: ARM Compiler 5.06 (build 20) Tool: armlink [4d35a3]
+Component: ARM Compiler 5.05 update 2 (build 169) Tool: armlink [4d0f33]
 
 ==============================================================================
 
@@ -32,8 +32,8 @@ Image Symbol Table
     MKL46Z4.s                                0x00000000   Number         0  mkl46z4.o ABSOLUTE
     Start.s                                  0x00000000   Number         0  start.o ABSOLUTE
     .ARM.__at_0xC0                           0x000000c0   Section       64  start.o(.ARM.__at_0xC0)
-    MyCode                                   0x00000100   Section       48  exercise05.o(MyCode)
-    Start                                    0x00000130   Section      260  start.o(Start)
+    MyCode                                   0x00000100   Section      224  exercise05.o(MyCode)
+    Start                                    0x000001e0   Section      260  start.o(Start)
     .ARM.__at_0x400                          0x00000400   Section       16  start.o(.ARM.__at_0x400)
     .ARM.__at_0x1FFFE000                     0x1fffe000   Section      256  start.o(.ARM.__at_0x1FFFE000)
 
@@ -46,8 +46,8 @@ Image Symbol Table
     __Vectors_End                            0x000000c0   Data           0  exercise05.o(RESET)
     __Vectors_Size                           0x000000c0   Number         0  exercise05.o ABSOLUTE
     Reset_Handler                            0x00000101   Thumb Code     0  exercise05.o(MyCode)
-    Startup                                  0x00000131   Thumb Code     0  start.o(Start)
-    Dummy_Handler                            0x00000211   Thumb Code     0  start.o(Start)
+    Startup                                  0x000001e1   Thumb Code     0  start.o(Start)
+    Dummy_Handler                            0x000002c1   Thumb Code     0  start.o(Start)
     __initial_sp                             0x1fffe100   Data           0  start.o(.ARM.__at_0x1FFFE000)
 
 
@@ -66,9 +66,9 @@ Memory Map of the image
 
     0x00000000   0x000000c0   Data   RO            2    RESET               exercise05.o
     0x000000c0   0x00000040   Data   RO           10    .ARM.__at_0xC0      start.o
-    0x00000100   0x00000030   Code   RO            1  * MyCode              exercise05.o
-    0x00000130   0x00000104   Code   RO            9    Start               start.o
-    0x00000234   0x000001cc   PAD
+    0x00000100   0x000000e0   Code   RO            1  * MyCode              exercise05.o
+    0x000001e0   0x00000104   Code   RO            9    Start               start.o
+    0x000002e4   0x0000011c   PAD
     0x00000400   0x00000010   Code   RO           11    .ARM.__at_0x400     start.o
 
 
@@ -91,13 +91,13 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   Object Name
 
-        48          4        192          0          0        268   exercise05.o
-       276         50         64        256          0        500   start.o
+       224         52        192          0          0        360   exercise05.o
+       276         50         64        256          0        564   start.o
 
     ----------------------------------------------------------------------
-       784        514        256        256          0        768   Object Totals
+       784        386        256        256          0        924   Object Totals
          0          0          0          0          0          0   (incl. Generated)
-       460        460          0          0          0          0   (incl. Padding)
+       284        284          0          0          0          0   (incl. Padding)
 
     ----------------------------------------------------------------------
          0          0          0          0          0          0   Library Totals
@@ -110,9 +110,9 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   
 
-       784        514        256        256          0        768   Grand Totals
-       784        514        256        256          0        768   ELF Image Totals
-       784        514        256        256          0          0   ROM Totals
+       784        386        256        256          0        924   Grand Totals
+       784        386        256        256          0        924   ELF Image Totals
+       784        386        256        256          0          0   ROM Totals
 
 ==============================================================================
 
