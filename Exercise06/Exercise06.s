@@ -367,8 +367,7 @@ TAKE_INPUT
 		
 END_GET_STR
 		
-		;Increase offset by one and null terminate String
-		ADDS R2, R2, #1
+		;null terminate String
 		MOVS R3, #0
 		STRB R3, [R0, R2]
 		
