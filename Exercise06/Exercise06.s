@@ -177,7 +177,11 @@ main
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
 
+            ;initalize string memory segment before anything else
+            B   INIT_STRING
+
 PRINT_PROMPT
+            
 			;Load static prompt string address
 			LDR R0, =Prompt
 			
@@ -255,6 +259,8 @@ LENGTH_STRING
 			
 INIT_STRING
 			;Throw null on the first byte of the String
+            MOVS R0, #'i';
+            BL PutChar
 			LDR R0, =StringBuffer
 			MOVS R1, #0
 			STRB R1, [R0, #0]
@@ -346,7 +352,7 @@ TAKE_INPUT
 		
 		;If all characters have been processed
 		;and another comes in, dont echo and reset.
-		CMP R1, #0
+		CMP R1, #1
         BEQ TAKE_INPUT
 		
 		;Echo character to the terminal
