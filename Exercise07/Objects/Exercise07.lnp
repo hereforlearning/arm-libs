@@ -1,7 +1,8 @@
 --cpu Cortex-M0+
 ".\objects\mkl46z4.o"
-".\objects\start.o"
 ".\objects\queue.o"
---ro-base 0x00000000 --entry 0x00000000 --rw-base 0x1FFFE000 --entry Reset_Handler --first __Vectors --strict --summary_stderr --info summarysizes --map --xref --callgraph --symbols
+".\objects\start.o"
+--strict --scatter ".\Objects\Exercise07.sct"
+--summary_stderr --info summarysizes --map --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
 --list ".\Listings\Exercise07.map" -o .\Objects\Exercise07.axf

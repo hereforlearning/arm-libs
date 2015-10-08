@@ -157,7 +157,8 @@ UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS  EQU  0xC0
 ;---------------------------------------------------------------
 
 ;Max length of queue
-QUEUE_MAX_LENGTH		EQU 50
+Q_BUF_SZ		EQU 80
+Q_REC_SZ                EQU 18
 
 ;Max length of prompt string
 MAX_STRING 				EQU 79
@@ -187,10 +188,10 @@ main
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
 			
-			;Load input params to initalize queue structure
-			LDR R0, =QueueBuffer
-			LDR R1, =Queue
-			MOVS R2, #QUEUE_MAX_LENGTH
+            ;Load input params to initalize queue structure
+			LDR R1, =QueueRecord
+			LDR R0, =Queue
+			MOVS R2, #Q_BUF_SZ
 			
 			;Initalize Queue structure once variables are loaded
 			BL		InitQueue
@@ -209,44 +210,93 @@ main
             B       .
 ;>>>>> begin subroutine code <<<<<
 
+PutNumHex
+;PutNumHex: Print hex representation of a value
+;To the console. Separates each nibble via masking
+;And then converts to appropriate ASCII representation
+;Inputs:
+    ;R0 - Value to print to the screen
+;Outputs: N/A
+;--------------------------------------------
+        PUSH {R2, R3, LR}
+    
+        MOVS R2, #0
+
+HEX_PRINT_LOOP
+
+        ;Iterate 8 times for each digit stored in a register
+        CMP R2, #7
+        BEQ END_PRINT_HEX
+        
+        ;Shift current nibble to print to
+        ;the rightmost value of register
+        MOVS R3, R0
+        LSRS R3, R2
+        
+        ;Convert to appropriate ASCII value
+        CMP R3, #10
+        BGE PRINT_LETTER
+        
+        ;If 0-9 should be printed, add ASCII '0' val
+        ADDS R3, #'0'
+        B PRINT_CHAR
+        
+PRINT_LETTER
+        
+        ;If A-F should be printed, Add ASCII '55'
+        ;To convert to capital letter value
+        ADDS R3, R3, #55
+        
+PRINT_CHAR
+        ;Print ASCII value to the screen
+        ;Make sure not to destroy vlue in R0!
+        PUSH {R0}
+        MOVS R0, R3
+        BL PutChar
+        POP {R0}
+        
+        ;Reset value in R3 and increment loop counter
+        MOVS R3, #0
+        ADDS R2, R2, #1
+        B HEX_PRINT_LOOP
+        
+END_PRINT_HEX
+       
+        POP {R2, R3, PC}
+;--------------------------------------------
+
 InitQueue
 ;InitQueue: Initalize Circular FIFO Queue Structure
 ;Inputs:
-;R0 - Memory location of queue buffer
-;R1 - Address to place Queue record structure
-;R2 - Size of queue structure (character capacity)
-;No outputs! all should remain the same in terms of addresses
+    ;R0 - Memory location of queue buffer
+    ;R1 - Address to place Queue record structure
+    ;R2 - Size of queue structure (character capacity)
+;Outputs: N/A
 ;--------------------------------------------
-		PUSH {R3, R4, R5}
-		
-		LDR R3, =Queue
-		LDR R4, =QueueBuffer
 
 		;Store memory address of front of queue
 		;Into IN_PTR position of the buffer
-		STR R3, [R4, #IN_PTR]
+		STR R0, [R1, #IN_PTR]
 
 		;Store same memory address for OUT_PTR
 		;position in the buffer since queue is empty
-		STR R3, [R4, #OUT_PTR]
+		STR R0, [R1, #OUT_PTR]
 
 		;Store same memory address in BUF_START for initalization
-		STR R3, [R4, #BUF_START]
+		STR R0, [R1, #BUF_START]
 
-		;Calculate memory location of BUF_PAST
-		;Store in fourth slot of the buffer
-		ADDS R3, R3, #4
-		STR R3, [R4, #BUF_PAST]
+		;Store BUF_PAST in last slot of buffer
+        ADDS R0, R0, R2
+		STR R0, [R1, #BUF_PAST]
 
 		;Store BUF_SIZE with size in R2
-		STR R2, [R4, #BUF_SIZE]
+		STR R2, [R1, #BUF_SIZE]
 		
 		;Initalize NUM_ENQD to zero and 
 		;store in 6th slot of buffer
-		MOVS R5, #0
-		STRB R5, [R4, #NUM_ENQD]
+		MOVS R0, #0
+		STRB R0, [R1, #NUM_ENQD]
 		
-		POP {R3, R4, R5}
 		BX	LR
 
 ;--------------------------------------------
@@ -261,35 +311,32 @@ DeQueue
 ;--------------------------------------------
 			PUSH {R2, R3, R4}
 			
-			;Load mem address of queue buffer
-			LDR R2, =QueueBuffer
-			
 			;If the number enqueued is 0,
 			;Set failure PSR flag
-			LDRB R3, [R2, #NUM_ENQD]
+			LDRB R3, [R1, #NUM_ENQD]
 			CMP R3, #0
 			BLE DEQUEUE_FAILURE
 			
 			;Remove the item from the queue
 			;And place in R0
-			LDR R0, [R2, #OUT_PTR]
+			LDR R0, [R1, #OUT_PTR]
 			;Load actual queue value into R0
 			LDR R0, [R0, #0]
 			
 			;Decrement number of enqueued elements
 			;And store info back in buffer
-			LDRB R3, [R2, #NUM_ENQD]
+			LDRB R3, [R1, #NUM_ENQD]
 			SUBS R3, R3, #1
-			STRB R3, [R2, #NUM_ENQD] 
+			STRB R3, [R1, #NUM_ENQD] 
 			
 			;Increment location of out_pointer
-			LDR R3, [R2, #OUT_PTR]
+			LDR R3, [R1, #OUT_PTR]
 			ADDS R3, R3, #4
-			STR R3, [R2, #OUT_PTR] 
+			STR R3, [R1, #OUT_PTR] 
 			
 			;Compare OUT_PTR to BUF_PAST
 			;If out_ptr >= BUF_PAST, wrap the queue around
-			LDR R4, [R2, #BUF_PAST]
+			LDR R4, [R1, #BUF_PAST]
 			CMP R3, R4
 			BGE WRAP_BUFFER
 			B DEQUEUE_CLEAR_PSR
@@ -297,27 +344,27 @@ DeQueue
 WRAP_BUFFER
 			;Adjust out_ptr to equal buf_start
 			;Thus wrapping around the circular queue
-			LDR R3, [R2, #BUF_START]
-			STR R2, [R2, #OUT_PTR]
+			LDR R3, [R1, #BUF_START]
+			STR R2, [R1, #OUT_PTR]
 
 DEQUEUE_CLEAR_PSR
 			;Clear the PSR C flag
-			MRS R2, APSR
+			MRS R1, APSR
 			MOVS R3, #0x20
-			LSLS R2, R2, #24
-			BICS R2, R2, R3
-			MSR	APSR, R2
+			LSLS R1, R1, #24
+			BICS R1, R1, R3
+			MSR	APSR, R1
 			
 			;Successfully end the operation
 			B END_DEQUEUE
 			
 DEQUEUE_FAILURE
 			;Set PSR C flag to 1
-			MRS R2, APSR
+			MRS R1, APSR
 			MOVS R3, #0x20
 			LSLS R3, R3, #24
-			ORRS R2, R2, R3
-			MSR APSR, R2
+			ORRS R1, R1, R3
+			MSR APSR, R1
 			
 END_DEQUEUE
 			POP {R2, R3, R4}
@@ -334,27 +381,25 @@ EnQueue
 ;--------------------------------------------'
 
 			PUSH {R2, R3, R4}
-
-			LDR R2, =QueueBuffer
 			
 			;If num_enqd >= size of the queue
 			;Then set PSR C flag to 1 indicating
 			;the error that an element was not inserted
 			;into a full queue
 			
-			LDRB R3, [R2, #NUM_ENQD]
-			LDR R4, [R2, #BUF_SIZE]
+			LDRB R3, [R1, #NUM_ENQD]
+			LDR R4, [R1, #BUF_SIZE]
 			CMP R3, R4
 			BGE QUEUE_FULL
 			B BEGIN_ENQUEUE
 			
 QUEUE_FULL
 			;Set PSR C flag to 1
-			MRS R2, APSR
+			MRS R1, APSR
 			MOVS R3, #0x20
 			LSLS R3, R3, #24
-			ORRS R2, R2, R3
-			MSR APSR, R2
+			ORRS R1, R1, R3
+			MSR APSR, R1
 			B END_ENQUEUE
 			
 BEGIN_ENQUEUE
@@ -362,24 +407,24 @@ BEGIN_ENQUEUE
 			;Load mem address of in_ptr
 			;and then store the value to be enqueued
 			;intot he value at that memory address
-			LDR R3, [R2, #IN_PTR]
+			LDR R3, [R1, #IN_PTR]
 			STR R0, [R3, #0]
 			
 			;Increment value of in_ptr by 4, 1 value past
 			;The queue item. Then store back in IN_PTR
 			ADDS R3, R3, #4
-			STR R3, [R2, #IN_PTR]
+			STR R3, [R1, #IN_PTR]
 			
 			;Increment number of enqueued elements
-			LDRB R3, [R2, #NUM_ENQD]
+			LDRB R3, [R1, #NUM_ENQD]
 			ADDS R3, R3, #1
-			STRB R3, [R2, #NUM_ENQD]
+			STRB R3, [R1, #NUM_ENQD]
 			
 			;If IN_PTR is >= BUF_PAST
 			;Loop around and adjust inPtr to beginning of
 			;the queue buffer
-			LDR R3, [R2, #IN_PTR]
-			LDR R4, [R2, #BUF_PAST]
+			LDR R3, [R1, #IN_PTR]
+			LDR R4, [R1, #BUF_PAST]
 			
 			CMP R3, R4
 			BGE WRAP_ENQUEUE
@@ -387,8 +432,7 @@ BEGIN_ENQUEUE
 			
 WRAP_ENQUEUE
 			;Adjust in_ptr to beginning of queue buffer
-			LDR R3, =QueueBuffer
-			STR R3, [R2, #IN_PTR]
+			STR R1, [R2, #IN_PTR]
 			
 			;Clear the PSR C flag confirming successful result
 			MRS R2, APSR
@@ -798,9 +842,9 @@ Length		DCB "Length: ", 0
 ;>>>>> begin variables here <<<<<
 
 ;Memory allocated to store String input from user
-Queue 		SPACE QUEUE_MAX_LENGTH	
+Queue 		SPACE Q_BUF_SZ	
 ;6 Byte buffer to store queue information 
-QueueBuffer SPACE 17
+QueueRecord SPACE Q_REC_SZ
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
