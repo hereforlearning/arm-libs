@@ -204,6 +204,18 @@ main
 			
 			MOVS R0, #10
 			BL 		EnQueue
+			
+			BL 		DeQueue
+			
+			BL 		PutNumU
+			
+			BL 		DeQueue
+			
+			BL 		PutNumU
+			
+			BL 		DeQueue
+			
+			BL 		PutNumU
             
 ;>>>>>   end main program code <<<<<
 ;Stay here
@@ -239,7 +251,7 @@ HEX_PRINT_LOOP
         
         ;If 0-9 should be printed, add ASCII '0' val
         ADDS R3, #'0'
-        B PRINT_CHAR
+        B PRINT_HX
         
 PRINT_LETTER
         
@@ -247,7 +259,7 @@ PRINT_LETTER
         ;To convert to capital letter value
         ADDS R3, R3, #55
         
-PRINT_CHAR
+PRINT_HX
         ;Print ASCII value to the screen
         ;Make sure not to destroy vlue in R0!
         PUSH {R0}
@@ -309,9 +321,9 @@ DeQueue
 	;R0 - Character that has been dequeued
 	;PSR C flag (failure if C = 1, C = 0 otherwise.)
 ;--------------------------------------------
-			PUSH {R2, R3, R4}
+			PUSH {R1, R2, R3, R4}
 			
-			;If the number enqueued is 0,
+			;If the number enqueued is 0, 
 			;Set failure PSR flag
 			LDRB R3, [R1, #NUM_ENQD]
 			CMP R3, #0
@@ -367,7 +379,7 @@ DEQUEUE_FAILURE
 			MSR APSR, R1
 			
 END_DEQUEUE
-			POP {R2, R3, R4}
+			POP {R1, R2, R3, R4}
 			BX	LR
 			
 ;--------------------------------------------
@@ -759,6 +771,80 @@ Init_UART0_Polling
 			POP {R0, R1, R2}
 
 			BX LR
+		
+
+;PutNumU: Print ASCII value to terminal screen
+;Inputs:
+	;R0 - Character to print
+;Outputs:
+	;N/A
+;--------------------------------------------'
+PutNumU
+
+		;Divide R0 value by 10
+		;continually printing the remainder
+		
+		PUSH {R0, R1, R2, LR}
+
+		;Initalize Array offset to Zero
+		MOVS R2, #0
+		
+DIV_NUM
+		;Num is too small to divide by 10
+		;finish subroutine
+		CMP R0, #10
+		BLT COMPLETE_PUT_NUM
+		
+		;Move dividend to R1, set divisor to 10
+		MOVS R1, R0
+		MOVS R0, #10
+		
+		;R1 / R0 = R0 Remainder R1
+		BL DIVU
+		
+		;Print remainder stored in R1
+		PUSH {R0}
+		LDR R0, =StringReversal
+		
+		STRB R1, [R0, R2]
+		ADDS R2, R2, #1
+		
+		POP {R0}
+		
+		;repeat until num is no longer divisible by 10
+		B DIV_NUM
+
+COMPLETE_PUT_NUM
+
+		;Convert to ASCII Value
+		ADDS R0, R0, #'0'
+		BL PutChar
+		
+		;TODO: Check if this works
+		SUBS R2, R2, #1
+		
+PRINT_CHAR		
+		;Iterate over array and print
+		LDR R0, =StringReversal
+		
+		CMP R2, #0
+		BLT END_PUTNUM
+		
+		LDRB R1, [R0, R2]
+		MOVS R0, R1
+		
+		;Convert to ASCII Character and Print
+		ADDS R0, R0, #'0'
+		BL PutChar
+		
+		SUBS R2, R2, #1
+	
+		B PRINT_CHAR
+		
+END_PUTNUM
+		;restore previous values to register and return
+		POP {R0, R1, R2, PC}
+
 			
 ;-------------------------------------------------------------------
 
@@ -845,6 +931,8 @@ Length		DCB "Length: ", 0
 Queue 		SPACE Q_BUF_SZ	
 ;6 Byte buffer to store queue information 
 QueueRecord SPACE Q_REC_SZ
+	
+StringReversal		SPACE 2
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
