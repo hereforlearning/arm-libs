@@ -187,6 +187,9 @@ main
 			BL      Init_UART0_Polling
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
+
+			MOVS R0, #0x4A
+			BL PutNumHex
 			
             ;Load input params to initalize queue structure
 			LDR R1, =QueueRecord
@@ -230,51 +233,54 @@ PutNumHex
     ;R0 - Value to print to the screen
 ;Outputs: N/A
 ;--------------------------------------------
-        PUSH {R2, R3, LR}
+        PUSH {R2, R3, R4, LR}
     
-        MOVS R2, #0
+        MOVS R2, #32
 
 HEX_PRINT_LOOP
 
         ;Iterate 8 times for each digit stored in a register
-        CMP R2, #7
-        BEQ END_PRINT_HEX
+        CMP R2, #0
+        BLT END_PRINT_HEX
         
         ;Shift current nibble to print to
         ;the rightmost value of register
         MOVS R3, R0
-        LSRS R3, R2
-        
+		MOVS R4, #0x0F
+		LSRS R3, R2
+		
+		ANDS R4, R4, R3
+		
         ;Convert to appropriate ASCII value
-        CMP R3, #10
+        CMP R4, #10
         BGE PRINT_LETTER
         
         ;If 0-9 should be printed, add ASCII '0' val
-        ADDS R3, #'0'
+        ADDS R4, #'0'
         B PRINT_HX
         
 PRINT_LETTER
         
         ;If A-F should be printed, Add ASCII '55'
         ;To convert to capital letter value
-        ADDS R3, R3, #55
+        ADDS R4, R4, #55
         
 PRINT_HX
         ;Print ASCII value to the screen
         ;Make sure not to destroy vlue in R0!
         PUSH {R0}
-        MOVS R0, R3
+        MOVS R0, R4
         BL PutChar
         POP {R0}
         
         ;Reset value in R3 and increment loop counter
-        MOVS R3, #0
-        ADDS R2, R2, #1
+        MOVS R4, #0
+        SUBS R2, R2, #4
         B HEX_PRINT_LOOP
         
 END_PRINT_HEX
        
-        POP {R2, R3, PC}
+        POP {R2, R3, R4, PC}
 ;--------------------------------------------
 
 InitQueue
