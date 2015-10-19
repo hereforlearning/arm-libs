@@ -187,9 +187,6 @@ main
 			BL      Init_UART0_Polling
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
-
-			MOVS R0, #0x4A
-			BL PutNumHex
 			
             ;Load input params to initalize queue structure
 			LDR R1, =QueueRecord
@@ -199,27 +196,139 @@ main
 			;Initalize Queue structure once variables are loaded
 			BL		InitQueue
 			
-			MOVS R0, #5
-			BL 		EnQueue
+PRINT_PROMPT
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
 			
-			MOVS R0, #8
-			BL 		EnQueue
-			
-			MOVS R0, #10
-			BL 		EnQueue
-			
-			BL 		DeQueue
-			
-			BL 		PutNumU
-			
-			BL 		DeQueue
-			
-			BL 		PutNumU
-			
-			BL 		DeQueue
-			
-			BL 		PutNumU
+			MOVS R0, #0x0A
+			BL PutChar
             
+			;Load static prompt string address
+			LDR R0, =Prompt
+			
+			;Print prompt string
+			BL PutStringSB
+
+PROMPT			
+			
+			;Request a single character from the terminal
+			BL GetChar
+			MOVS R0, R3
+			
+			;If character is <= ASCII code 90, check if it's a capital letter
+			CMP R0, #90
+			BLE IF_LOWER
+			B PARSE_COMMAND
+IF_LOWER
+			
+			CMP R0, #65
+			BGE CONVERT_TO_LOWER
+			B PARSE_COMMAND
+			
+CONVERT_TO_LOWER
+			;Convert char to lower case representation
+			ADDS R0, R0, #32
+			
+PARSE_COMMAND
+			;Check if the sanitized character is one of the four inputs
+			CMP R0, #'d'
+			BEQ PRINT_DEQUEUE
+			CMP R0, #'e'
+			BEQ PRINT_ENQUEUE
+			CMP R0, #'h'
+			BEQ PRINT_HELP
+			CMP R0, #'p'
+			BEQ PRINT_ACTIVE_QUEUE
+			CMP R0, #'s'
+			BEQ PRINT_STATUS
+			B PROMPT
+			
+PRINT_DEQUEUE
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			;Load input params to initalize queue structure
+			LDR R1, =QueueRecord
+			LDR R0, =Queue
+			MOVS R2, #Q_BUF_SZ
+			
+			BL DeQueue
+			
+			;ASPR C flag set to 1, print that the queue is empty
+			BCS QUEUE_PRINT_ERROR
+			
+			;Print value retrieved from the queue
+			BL PutNumU
+			B	CMD_END
+			
+QUEUE_PRINT_ERROR
+			
+			;Print that dequeue opeation failed and restart prompt
+			LDR R0, =Failure
+			BL	PutStringSB
+			B	CMD_END
+
+PRINT_ENQUEUE
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			B	CMD_END
+
+PRINT_HELP
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+
+			;Load help string address
+			LDR R0, =HelpString
+			
+			;Print help string
+			BL PutStringSB
+			
+			B CMD_END
+
+PRINT_ACTIVE_QUEUE
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			B CMD_END
+
+PRINT_STATUS
+		
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			B CMD_END
+			
+CMD_END
+			;Return to initial prompt
+			B PRINT_PROMPT
+			
 ;>>>>>   end main program code <<<<<
 ;Stay here
             B       .
@@ -924,8 +1033,11 @@ __Vectors_Size  EQU     __Vectors_End - __Vectors
 ;Constants
             AREA    MyConst,DATA,READONLY
 ;>>>>> begin constants here <<<<<
-Prompt		DCB "Type a string command (g, i, l, p):", 0
-Length		DCB "Length: ", 0
+Prompt				DCB "Type a queue command (d, e, h, p, s):", 0
+EnqueuePrompt 		DCB	"Character to enqueue: ", 0
+HelpString			DCB	"d (dequeue), e (enqueue), h (help}, p (print), s (status)", 0
+Success				DCB "Success: ", 0
+Failure				DCB "Failure: ", 0
 ;>>>>>   end constants here <<<<<
             ALIGN
 ;****************************************************************
