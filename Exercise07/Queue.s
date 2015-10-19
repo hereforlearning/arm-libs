@@ -265,7 +265,7 @@ PRINT_DEQUEUE
 			BCS QUEUE_PRINT_ERROR
 			
 			;Print value retrieved from the queue
-			BL PutNumU
+			BL PutChar
 			B	CMD_END
 			
 QUEUE_PRINT_ERROR
@@ -283,6 +283,36 @@ PRINT_ENQUEUE
 			
 			MOVS R0, #0x0A
 			BL PutChar
+			
+			;Prompt user to enter a char to enqueue
+			LDR R0, =EnqueuePrompt
+			BL 	PutStringSB
+			
+			;Load input params to initalize queue structure
+			LDR R1, =QueueRecord
+			LDR R0, =Queue
+			MOVS R2, #Q_BUF_SZ
+			
+			;Grab a charater from the terminal and insert it into the queue
+			BL GetChar
+			
+			;Convert charater to ASCII value
+			MOVS R0, R3
+			BL	PutChar
+			
+			BL EnQueue
+			
+			;If the queue is full, print failure message
+			BCS ENQUEUE_FAILURE
+			
+			;Print number that was dequeued if successful
+			B	CMD_END
+			
+ENQUEUE_FAILURE
+			
+			;Load failure string and print to the console
+			LDR R0, =Failure
+			BL	PutStringSB
 			
 			B	CMD_END
 
