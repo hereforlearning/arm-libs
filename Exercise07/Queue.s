@@ -359,7 +359,9 @@ PRINT_STATUS
 			LDR R0, =Status
 			BL PutStringSB
 			
-			LDR R1, =QueueRecord
+			;Print entire status string of the queue
+			LDR R0, =QueueRecord
+			BL PrintQueueStatus
 			
 			
 			B CMD_END
@@ -435,7 +437,44 @@ PrintQueueStatus
 ;Outputs
 	;N/A
 ;-------------------------------------------
-	BX LR
+	PUSH {R0, R1, R2, R3, LR}
+	
+	LDR R1, [R0, #IN_PTR]
+	LDR R2, [R0, #OUT_PTR]
+	LDRB R3, [R0, #NUM_ENQD]
+	
+	;Print chars '   In='
+	LDR R0, =Spaces
+	BL PutStringSB
+	LDR R0, =In
+	BL PutStringSB
+	
+	;Print in_ptr address of queue
+	MOVS R0, R1
+	BL PutNumHex
+	
+	;Print chars '   Out='
+	LDR R0, =Spaces
+	BL PutStringSB
+	LDR R0, =Out
+	BL PutStringSB
+	
+	;Print out+ptr address of queue
+	MOVS R0, R2
+	BL PutNumHex
+	
+	;Print chars '   Num='
+	LDR R0, =Spaces
+	BL PutStringSB
+	LDR R0, =Num
+	BL PutStringSB
+	
+	;Print number of elements currently enqueued
+	MOVS R0, R3
+	BL PutNumU
+	
+	;Call it a day
+	POP {R0, R1, R2, R3, PC}	
 ;-------------------------------------------
 
 PutNumHex
@@ -797,7 +836,7 @@ PrintCharLF
 PutStringSB
 ;--------------------------------------------
 
-		PUSH {R1, R3, LR}
+		PUSH {R1, R2, R3, LR}
 		
 		;Determine the length of the string before printing
 		BL LengthStringSB
@@ -830,7 +869,7 @@ END_PUT_STR
 
 		;Pop PC returns nested subroutine
 		;Return with pointer at last char of string in R0
-		POP {R1, R3, PC}
+		POP {R1, R2, R3, PC}
 		
 ;--------------------------------------------
 		
