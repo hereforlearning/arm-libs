@@ -266,6 +266,9 @@ PRINT_DEQUEUE
 			
 			;Print value retrieved from the queue
 			BL PutChar
+			MOVS R0, #':'
+			BL PutChar
+			
 			B	CMD_END
 			
 QUEUE_PRINT_ERROR
@@ -305,7 +308,17 @@ PRINT_ENQUEUE
 			;If the queue is full, print failure message
 			BCS ENQUEUE_FAILURE
 			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
 			;Print number that was dequeued if successful
+			LDR R0, =Success
+			BL PutStringSB
+			
 			B	CMD_END
 			
 ENQUEUE_FAILURE
@@ -333,7 +346,7 @@ PRINT_HELP
 			
 			B CMD_END
 
-PRINT_ACTIVE_QUEUE
+PRINT_STATUS
 
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -342,9 +355,16 @@ PRINT_ACTIVE_QUEUE
 			MOVS R0, #0x0A
 			BL PutChar
 			
+			;Print the initial 'Status: ' String
+			LDR R0, =Status
+			BL PutStringSB
+			
+			LDR R1, =QueueRecord
+			
+			
 			B CMD_END
 
-PRINT_STATUS
+PRINT_ACTIVE_QUEUE
 		
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -353,6 +373,48 @@ PRINT_STATUS
 			MOVS R0, #0x0A
 			BL PutChar
 			
+			PUSH {R0-R4}
+			
+			;Print first delimeter to print queue contents
+			MOVS R0, #'>'
+			BL	PutChar
+			
+			;Load input params to initalize queue structure
+			LDR R1, =QueueRecord
+			LDR R0, =Queue
+			
+			LDR R2, [R1, #IN_PTR]
+			LDR R3, [R1, #OUT_PTR]
+			
+PRINT_NEXT
+			;if we've reached buf_past, we've hit the end of the queue
+			CMP R3, R2
+			BGE QUEUE_END_REACHED
+			
+			;Print queue character 
+			LDRB R4, [R3, #0]
+			
+			;Move char to R0 to print
+			PUSH {R0}
+			MOVS R0, R4
+			BL PutChar
+			POP {R0}
+			
+			;Increment memory address to look for next queue char
+			ADDS R3, #4
+			B PRINT_NEXT
+			
+QUEUE_END_REACHED
+			
+			;Print ending delimeters, carrige return and line feed
+			MOVS R0, #'<'
+			BL PutChar
+			MOVS R0, #0x0D
+			BL PutChar
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			POP {R0-R4}	
 			B CMD_END
 			
 CMD_END
@@ -363,6 +425,18 @@ CMD_END
 ;Stay here
             B       .
 ;>>>>> begin subroutine code <<<<<
+
+PrintQueueStatus
+;PrintQueueStatus: Print the inpointer, outpointer, and
+;number of elements that are enqueued in the current queue.
+
+;Inputs:
+	;R0 = address of queue record structure
+;Outputs
+	;N/A
+;-------------------------------------------
+	BX LR
+;-------------------------------------------
 
 PutNumHex
 ;PutNumHex: Print hex representation of a value
@@ -1068,6 +1142,11 @@ EnqueuePrompt 		DCB	"Character to enqueue: ", 0
 HelpString			DCB	"d (dequeue), e (enqueue), h (help}, p (print), s (status)", 0
 Success				DCB "Success: ", 0
 Failure				DCB "Failure: ", 0
+Status				DCB "Status: ", 0
+In					DCB "In= ", 0
+Out					DCB "Out= ", 0
+Num					DCB "Num= ", 0
+Spaces				DCB "   ", 0
 ;>>>>>   end constants here <<<<<
             ALIGN
 ;****************************************************************
