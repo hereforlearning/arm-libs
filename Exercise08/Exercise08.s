@@ -180,17 +180,162 @@ main
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
 
+			;Initalize the op-string with the default value
 			LDR R0, =TestString
 			LDR R1, =ResultString
 			
 			BL CopyString
+
+PRINT_PROMPT
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
 			
-			;Move copied string variable
-			MOVS R0, R1
+			MOVS R0, #0x0A
+			BL PutChar
+            
+			;Load static prompt string address
+			LDR R0, =Prompt
 			
+			;Print prompt string
+			BL PutStringSB
+
+PROMPT			
+			
+			;Request a single character from the terminal
+			BL GetChar
+			MOVS R0, R3
+			
+			BL PutChar
+			
+			;If character is <= ASCII code 90, check if it's a capital letter
+			CMP R0, #90
+			BLE IF_LOWER
+			B PARSE_COMMAND
+IF_LOWER
+			
+			CMP R0, #65
+			BGE CONVERT_TO_LOWER
+			B PARSE_COMMAND
+			
+CONVERT_TO_LOWER
+			;Convert char to lower case representation
+			ADDS R0, R0, #32
+			
+PARSE_COMMAND
+			;Check if the sanitized character is one of the inputs
+			CMP R0 , #0x0D
+			BEQ PRINT_NEWLINE
+			CMP R0, #'g'
+			BEQ GET_STRING
+			CMP R0, #'h'
+			BEQ PRINT_HELP
+			CMP R0, #'m'
+			BEQ PRINT_MODIFY
+			CMP R0, #'p'
+			BEQ PRINT_PUT_STRING
+			CMP R0, #'r'
+			BEQ PRINT_REVERSE_STRING
+			
+			B PRINT_INVALID
+			
+PRINT_INVALID
+			LDR R0, =Invalid
+			BL PutStringSB
+			B PRINT_PROMPT
+			
+GET_STRING
+			MOVS R1, #MAX_STRING
+			
+			;Get string from user and print to the terminal
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =EnterPrompt
+			BL PutStringSB
+			
+			LDR R0, =ResultString
+			
+			BL GetStringSB
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			;Print string back to the terminal
+			LDR R0, =ResultString
+			BL PutStringSB
+			B PRINT_PROMPT
+			
+PRINT_HELP
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =HelpString
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+			
+PRINT_MODIFY
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =ResultString
+			BL ModifyString
+			
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+			
+PRINT_PUT_STRING
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =ResultString
+			
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+			
+PRINT_REVERSE_STRING
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =ResultString
 			BL ReverseString
 			
 			BL PutStringSB
+			
+			B PRINT_PROMPT
+
+PRINT_NEWLINE
+			B PRINT_PROMPT
 
 ;>>>>>   end main program code <<<<<
 ;Stay here
@@ -237,7 +382,6 @@ CHECK_CHAR
 END_STRING_CPY
 
 	;Append a null terminator to the newly copied string
-	ADDS R2, #1
 	MOVS R3, #0
 	STRB R3, [R1, R2]
 	
@@ -330,7 +474,6 @@ NEXT_C
 	
 	
 END_STRING_REPL
-	
 	;restore state of registers and return
 	POP {R2, R3, R4}
 	BX LR
@@ -916,7 +1059,14 @@ __Vectors_Size  EQU     __Vectors_End - __Vectors
 ;Constants
             AREA    MyConst,DATA,READONLY
 ;>>>>> begin constants here <<<<<
-TestString			DCB "Test String123", 0
+;Personal program test vars
+TestString			DCB "Initial string", 0
+
+;Console I/O Vars
+Prompt			DCB "Enter a string command (g,h,m,p,r)>", 0
+Invalid			DCB	":Invalid command", 0
+EnterPrompt		DCB "Please enter a string: ",0
+HelpString		DCB "g (get), h (help), m (modify), p (print), r (reverse)", 0 
 
 
 ;>>>>>   end constants here <<<<<
