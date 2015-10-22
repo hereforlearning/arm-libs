@@ -157,7 +157,7 @@ UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS  EQU  0xC0
 ;---------------------------------------------------------------
 
 ;Max length of queue
-Q_BUF_SZ		EQU 80
+Q_BUF_SZ				EQU 80
 Q_REC_SZ                EQU 18
 
 ;Max length of prompt string
@@ -269,6 +269,9 @@ PRINT_DEQUEUE
 			MOVS R0, #':'
 			BL PutChar
 			
+			LDR R0, =QueueRecord
+			BL PrintQueueStatus
+			
 			B	CMD_END
 			
 QUEUE_PRINT_ERROR
@@ -276,6 +279,10 @@ QUEUE_PRINT_ERROR
 			;Print that dequeue opeation failed and restart prompt
 			LDR R0, =Failure
 			BL	PutStringSB
+			
+			LDR R0, =QueueRecord
+			BL PrintQueueStatus
+			
 			B	CMD_END
 
 PRINT_ENQUEUE
@@ -315,9 +322,11 @@ PRINT_ENQUEUE
 			MOVS R0, #0x0A
 			BL PutChar
 			
-			;Print number that was dequeued if successful
 			LDR R0, =Success
 			BL PutStringSB
+			
+			LDR R0, =QueueRecord
+			BL PrintQueueStatus
 			
 			B	CMD_END
 			
@@ -326,6 +335,9 @@ ENQUEUE_FAILURE
 			;Load failure string and print to the console
 			LDR R0, =Failure
 			BL	PutStringSB
+			
+			LDR R0, =QueueRecord
+			BL PrintQueueStatus
 			
 			B	CMD_END
 
@@ -836,7 +848,7 @@ PrintCharLF
 PutStringSB
 ;--------------------------------------------
 
-		PUSH {R1, R2, R3, LR}
+		PUSH {R0, R1, R2, R3, LR}
 		
 		;Determine the length of the string before printing
 		BL LengthStringSB
@@ -869,7 +881,7 @@ END_PUT_STR
 
 		;Pop PC returns nested subroutine
 		;Return with pointer at last char of string in R0
-		POP {R1, R2, R3, PC}
+		POP {R0, R1, R2, R3, PC}
 		
 ;--------------------------------------------
 		
@@ -880,7 +892,7 @@ END_PUT_STR
 LengthStringSB
 ;--------------------------------------------
 
-		PUSH {R1, R3, R4, LR}
+		PUSH {R0, R1, R3, R4, LR}
 		MOVS R1, #MAX_STRING
 		MOVS R2, #0; Initalize length to zero.
 		MOVS R4, #0; Initalize STR offset to zero
@@ -908,7 +920,7 @@ ADD_TO_LEN
 END_GET_LEN
 
 		;Pop PC returns nested subroutine
-		POP {R1, R3, R4, PC}
+		POP {R0, R1, R3, R4, PC}
 		
 ;--------------------------------------------
 
