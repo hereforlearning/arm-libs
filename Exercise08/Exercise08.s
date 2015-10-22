@@ -1,9 +1,12 @@
-		TTL Exercise 07 Circular FIFO Queue Operations
+	TTL Exercise 08 String Operations
 		
 ;****************************************************************
-;Date:  10/01/2015
+;Date:  10/22/2015
 ;Class:  CMPE-250
 ;Section:  03 TR 2-4PM
+;Implementation of laboratory exercise 08: String Operations
+;Command line interface to perform reversal, character subsitution,
+;and copying of input strings in memory
 ;---------------------------------------------------------------
 ;Keil Template for KL46
 ;R. W. Melton
@@ -155,20 +158,9 @@ UART0_S1_CLEAR_FLAGS  EQU  0x1F
 ;0-->0:RAF=receiver active flag; read-only
 UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS  EQU  0xC0
 ;---------------------------------------------------------------
-
-;Max length of queue
-Q_BUF_SZ				EQU 4
-Q_REC_SZ                EQU 18
-
 ;Max length of prompt string
 MAX_STRING 				EQU 79
-	
-IN_PTR					EQU 0
-OUT_PTR					EQU 4
-BUF_START				EQU 8
-BUF_PAST				EQU 12
-BUF_SIZE				EQU 16
-NUM_ENQD				EQU 17
+
 
 ;****************************************************************
 ;Program
@@ -187,15 +179,13 @@ main
 			BL      Init_UART0_Polling
 ;---------------------------------------------------------------
 ;>>>>> begin main program code <<<<<
+
+			;Initalize the op-string with the default value
+			LDR R0, =TestString
+			LDR R1, =ResultString
 			
-            ;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
-			LDR R0, =Queue
-			MOVS R2, #Q_BUF_SZ
-			
-			;Initalize Queue structure once variables are loaded
-			BL		InitQueue
-			
+			BL CopyString
+
 PRINT_PROMPT
 
 			;Print CR and LF to the screen
@@ -217,6 +207,8 @@ PROMPT
 			BL GetChar
 			MOVS R0, R3
 			
+			BL PutChar
+			
 			;If character is <= ASCII code 90, check if it's a capital letter
 			CMP R0, #90
 			BLE IF_LOWER
@@ -232,275 +224,322 @@ CONVERT_TO_LOWER
 			ADDS R0, R0, #32
 			
 PARSE_COMMAND
-			;Check if the sanitized character is one of the four inputs
-			CMP R0, #'d'
-			BEQ PRINT_DEQUEUE
-			CMP R0, #'e'
-			BEQ PRINT_ENQUEUE
+			;Check if the sanitized character is one of the inputs
+			CMP R0 , #0x0D
+			BEQ PRINT_NEWLINE
+			CMP R0, #'g'
+			BEQ GET_STRING
 			CMP R0, #'h'
 			BEQ PRINT_HELP
+			CMP R0, #'m'
+			BEQ PRINT_MODIFY
 			CMP R0, #'p'
-			BEQ PRINT_ACTIVE_QUEUE
-			CMP R0, #'s'
-			BEQ PRINT_STATUS
-			B PROMPT
+			BEQ PRINT_PUT_STRING
+			CMP R0, #'r'
+			BEQ PRINT_REVERSE_STRING
 			
-PRINT_DEQUEUE
-			BL PutChar
-
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
+			B PRINT_INVALID
 			
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
-			LDR R0, =Queue
-			MOVS R2, #Q_BUF_SZ
-			
-			BL DeQueue
-			
-			;ASPR C flag set to 1, print that the queue is empty
-			BCS QUEUE_PRINT_ERROR
-			
-			;Print value retrieved from the queue
-			BL PutChar
-			MOVS R0, #':'
-			BL PutChar
-			
-			LDR R0, =QueueRecord
-			BL PrintQueueStatus
-			
-			B	CMD_END
-			
-QUEUE_PRINT_ERROR
-			
-			;Print that dequeue opeation failed and restart prompt
-			LDR R0, =Failure
-			BL	PutStringSB
-			
-			LDR R0, =QueueRecord
-			BL PrintQueueStatus
-			
-			B	CMD_END
-
-PRINT_ENQUEUE
-			BL PutChar
-
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
-			
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			;Prompt user to enter a char to enqueue
-			LDR R0, =EnqueuePrompt
-			BL 	PutStringSB
-			
-			;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
-			LDR R0, =Queue
-			MOVS R2, #Q_BUF_SZ
-			
-			;Grab a charater from the terminal and insert it into the queue
-			BL GetChar
-			
-			;Convert charater to ASCII value
-			MOVS R0, R3
-			BL	PutChar
-			
-			BL EnQueue
-			
-			;If the queue is full, print failure message
-			BCS ENQUEUE_FAILURE
-			
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
-			
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			LDR R0, =Success
+PRINT_INVALID
+			LDR R0, =Invalid
 			BL PutStringSB
-			
-			LDR R0, =QueueRecord
-			BL PrintQueueStatus
-			
-			B	CMD_END
-			
-ENQUEUE_FAILURE
-
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
-			
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			;Load failure string and print to the console
-			LDR R0, =Failure
-			BL	PutStringSB
-			
-			LDR R0, =QueueRecord
-			BL PrintQueueStatus
-			
-			B	CMD_END
-
-PRINT_HELP
-			BL PutChar
-
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
-			
-			MOVS R0, #0x0A
-			BL PutChar
-
-			;Load help string address
-			LDR R0, =HelpString
-			
-			;Print help string
-			BL PutStringSB
-			
-			B CMD_END
-
-PRINT_STATUS
-			BL PutChar
-
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
-			
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			;Print the initial 'Status: ' String
-			LDR R0, =Status
-			BL PutStringSB
-			
-			;Print entire status string of the queue
-			LDR R0, =QueueRecord
-			BL PrintQueueStatus
-			
-			
-			B CMD_END
-
-PRINT_ACTIVE_QUEUE
-
-			BL PutChar
-		
-			;Print CR and LF to the screen
-			MOVS R0, #0x0D
-			BL PutChar
-			
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			PUSH {R0-R4}
-			
-			;Print first delimeter to print queue contents
-			MOVS R0, #'>'
-			BL	PutChar
-			
-			;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
-			LDR R0, =Queue
-			
-			LDR R2, [R1, #IN_PTR]
-			LDR R3, [R1, #OUT_PTR]
-			
-PRINT_NEXT
-			;if we've reached buf_past, we've hit the end of the queue
-			CMP R3, R2
-			BGE QUEUE_END_REACHED
-			
-			;Print queue character 
-			LDRB R4, [R3, #0]
-			
-			;Move char to R0 to print
-			PUSH {R0}
-			MOVS R0, R4
-			BL PutChar
-			POP {R0}
-			
-			;Increment memory address to look for next queue char
-			ADDS R3, #4
-			B PRINT_NEXT
-			
-QUEUE_END_REACHED
-			
-			;Print ending delimeters, carrige return and line feed
-			MOVS R0, #'<'
-			BL PutChar
-			MOVS R0, #0x0D
-			BL PutChar
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			POP {R0-R4}	
-			B CMD_END
-			
-CMD_END
-			;Return to initial prompt
 			B PRINT_PROMPT
 			
+GET_STRING
+			MOVS R1, #MAX_STRING
+			
+			;Get string from user and print to the terminal
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =EnterPrompt
+			BL PutStringSB
+			
+			LDR R0, =ResultString
+			
+			BL GetStringSB
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			;Print string back to the terminal
+			LDR R0, =ResultString
+			BL PutStringSB
+			B PRINT_PROMPT
+			
+PRINT_HELP
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =HelpString
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+			
+PRINT_MODIFY
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =ResultString
+			BL ModifyString
+			
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+			
+PRINT_PUT_STRING
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =ResultString
+			
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+			
+PRINT_REVERSE_STRING
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =ResultString
+			BL ReverseString
+			
+			BL PutStringSB
+			
+			B PRINT_PROMPT
+
+PRINT_NEWLINE
+			B PRINT_PROMPT
+
 ;>>>>>   end main program code <<<<<
 ;Stay here
             B       .
 ;>>>>> begin subroutine code <<<<<
 
-PrintQueueStatus
-;PrintQueueStatus: Print the inpointer, outpointer, and
-;number of elements that are enqueued in the current queue.
-
-;Inputs:
-	;R0 = address of queue record structure
-;Outputs
-	;N/A
 ;-------------------------------------------
-	PUSH {R0, R1, R2, R3, LR}
+
+CopyString
+;CopyString: Create a null terminated string beginning
+;at the address in R1 and copy from a null terminated source 
+;string that is stored in R0.
+
+;Inputs
+;	R0 - Memory address of beginning of source string
+
+;Outputs
+;	R1 - Memory address of beginning of copied string
+;--------------------------------------------
+
+	PUSH {R0, R2, R3}
 	
-	LDR R1, [R0, #IN_PTR]
-	LDR R2, [R0, #OUT_PTR]
-	LDRB R3, [R0, #NUM_ENQD]
+	;Initalize offset
+	MOVS R2, #0
+
+CHECK_CHAR
 	
-	;Print chars '   In='
-	LDR R0, =Spaces
-	BL PutStringSB
-	LDR R0, =In
-	BL PutStringSB
+	;Load character from the source string with
+	;R2 as an offset.
+	LDRB R3, [R0, R2]
+
+	;If char is the null character, we've hit the end
+	CMP R3, #0
+	BEQ END_STRING_CPY
 	
-	;Print in_ptr address of queue
-	MOVS R0, R5
-	MOVS R0, R1
-	BL PutNumHex
+	;Copy character into new string at the same index
+	STRB R3, [R1, R2]
 	
-	;Print chars '   Out='
-	LDR R0, =Spaces
-	BL PutStringSB
-	LDR R0, =Out
-	BL PutStringSB
+	;Increment offset and continue the loop
+	ADDS R2, R2, #1
+	B CHECK_CHAR
 	
-	;Print out+ptr address of queue
-	MOVS R0, R2
-	BL PutNumHex
 	
-	;Print chars '   Num='
-	LDR R0, =Spaces
-	BL PutStringSB
-	LDR R0, =Num
-	BL PutStringSB
+END_STRING_CPY
+
+	;Append a null terminator to the newly copied string
+	MOVS R3, #0
+	STRB R3, [R1, R2]
 	
-	;Print number of elements currently enqueued
-	MOVS R0, R3
-	BL PutNumU
+	;restore state of registers and return
+	POP {R0, R2, R3}
+	BX LR
 	
-	;Call it a day
-	POP {R0, R1, R2, R3, PC}	
+;-------------------------------------------
+
+ModifyString
+;ModifyString: Modify string with mem address starting in R0
+;to have the following properties:
+
+; - every space is replaced with an underscore
+; - every upper case character is lowercased
+; - every numeric character is replaced with a pound sign
+
+;Inputs
+;	R0 - Memory address of beginning of source string
+
+;Outputs
+;	R0 - Memory address of beginning of modified string
+;--------------------------------------------
+
+	PUSH {R2, R3, R4}
+	
+	;Initalize offset
+	MOVS R2, #0
+
+CHECK_C
+
+	;Load character from the source string with
+	;R2 as an offset.
+	LDRB R3, [R0, R2]
+
+	;If char is the null character, we've hit the end
+	CMP R3, #0
+	BEQ END_STRING_REPL
+	
+	;If character is a space, do a space replace!
+	CMP R3, #32
+	BEQ SPACE_REPLACE
+	
+	;If the character is > code 48
+	;It potentially is a number or capital letter that
+	;needs to be replaced in the string
+	CMP R3, #48
+	BGE CHECK_IF_NUM
+	
+CHECK_IF_NUM
+	;If code is greater than value for '9', check if it's
+	;a capital letter
+	CMP R3, #57
+	BGT CHECK_IF_CAP
+	
+	;Otherwise the current character is a number
+	;Replace space character with a pound in memory
+	MOVS R4, #0x23
+	STRB R4, [R0, R2]
+	
+	B NEXT_C
+	
+CHECK_IF_CAP
+	
+	;Check if character code is lower than 'A'
+	CMP R3, #65
+	BLT NEXT_C
+	
+	;Check if character code is higher than 'Z'
+	CMP R3, #90
+	BGT NEXT_C
+	
+	;If char is in range of a capital, replace it
+	;with its lowercase value
+	ADDS R3, R3, #32
+	STRB R3, [R0, R2]
+	
+	B NEXT_C
+	
+	
+SPACE_REPLACE
+	;Replace space character with an underscore in memory
+	MOVS R4, #0x5F
+	STRB R4, [R0, R2]
+	
+NEXT_C
+	;Increment offset and continue the loop
+	ADDS R2, #1
+	B CHECK_C
+	
+	
+END_STRING_REPL
+	;restore state of registers and return
+	POP {R2, R3, R4}
+	BX LR
+	
+;-------------------------------------------
+
+ReverseString
+;ReverseString: Reverse the values of the null terminated
+;string in memory that begins at the address stored in R0
+
+;Keep track of two pointers incrementing from the
+;beginning of the string forward and from the end of the
+;string backwards. Swap characters at these two pointers and
+;increment/decrement them respectively until the pointers
+;end on the same character or cross one another in the
+;middle of the string.
+
+;Inputs
+;	R0 - Memory address of beginning of source string
+
+;Outputs
+;	R0 - Memory address of beginning of reversed string
+
+;Subs Used:
+	;- LengthStringSB [determines length of string in memory]
+;--------------------------------------------
+
+	PUSH {R1, R2, R3, R4, R5, LR}
+
+	;Cursor to iterate over the string
+	MOVS R5, #0
+
+	;Grab the length of the string in memory
+	MOVS R1, #MAX_STRING
+	BL LengthStringSB
+	
+	;Shave off the null pointer from end pointer
+	SUBS R2, R2, #1
+	
+SWAP_CHARS
+
+	;If both pointers have crossed, string reversal has ended
+	CMP R5, R2
+	BGE END_REVERSAL
+	
+	;Load last character of the string (offset = string length)
+	LDRB R3, [R0, R2]
+	
+	;Load forward incrementing character of the string
+	LDRB R4, [R0, R5]
+	
+	;Swap characters with one another
+	STRB R3, [R0, R5]
+	STRB R4, [R0, R2]
+	
+	;Increment forward pointer, decrement reverse
+	ADDS R5, R5, #1
+	SUBS R2, R2, #1
+	
+	B SWAP_CHARS
+	
+END_REVERSAL
+	
+	POP {R1, R2, R3, R4, R5, PC}
+	
+
 ;-------------------------------------------
 
 PutNumHex
@@ -559,198 +598,6 @@ PRINT_HX
 END_PRINT_HEX
        
         POP {R2, R3, R4, PC}
-;--------------------------------------------
-
-InitQueue
-;InitQueue: Initalize Circular FIFO Queue Structure
-;Inputs:
-    ;R0 - Memory location of queue buffer
-    ;R1 - Address to place Queue record structure
-    ;R2 - Size of queue structure (character capacity)
-;Outputs: N/A
-;--------------------------------------------
-
-		;Store memory address of front of queue
-		;Into IN_PTR position of the buffer
-		STR R0, [R1, #IN_PTR]
-
-		;Store same memory address for OUT_PTR
-		;position in the buffer since queue is empty
-		STR R0, [R1, #OUT_PTR]
-
-		;Store same memory address in BUF_START for initalization
-		STR R0, [R1, #BUF_START]
-
-		;Store BUF_PAST in last slot of buffer
-        ADDS R0, R0, R2
-		STR R0, [R1, #BUF_PAST]
-
-		;Store BUF_SIZE with size in R2
-		STR R2, [R1, #BUF_SIZE]
-		
-		;Initalize NUM_ENQD to zero and 
-		;store in 6th slot of buffer
-		MOVS R0, #0
-		STRB R0, [R1, #NUM_ENQD]
-		
-		BX	LR
-
-;--------------------------------------------
-
-DeQueue
-;DeQueue: Remove an element from the circular FIFO Queue
-;Inputs:
-	;R1 - Address of Queue record structure
-;Outputs:
-	;R0 - Character that has been dequeued
-	;PSR C flag (failure if C = 1, C = 0 otherwise.)
-;--------------------------------------------
-			PUSH {R1, R2, R3, R4}
-			
-			;If the number enqueued is 0, 
-			;Set failure PSR flag
-			LDRB R3, [R1, #NUM_ENQD]
-			CMP R3, #0
-			BLE DEQUEUE_FAILURE
-			
-			;Remove the item from the queue
-			;And place in R0
-			LDR R0, [R1, #OUT_PTR]
-			
-			;Load actual queue value into R0
-			LDRB R0, [R0, #0]
-			
-			;Decrement number of enqueued elements
-			;And store info back in buffer
-			LDRB R3, [R1, #NUM_ENQD]
-			SUBS R3, R3, #1
-			STRB R3, [R1, #NUM_ENQD] 
-			
-			;Increment location of out_pointer
-			LDR R3, [R1, #OUT_PTR]
-			ADDS R3, R3, #1
-			STR R3, [R1, #OUT_PTR] 
-			
-			;Compare OUT_PTR to BUF_PAST
-			;If out_ptr >= BUF_PAST, wrap the queue around
-			LDR R4, [R1, #BUF_PAST]
-			CMP R3, R4
-			BGE WRAP_BUFFER
-			B DEQUEUE_CLEAR_PSR
-			
-WRAP_BUFFER
-			;Adjust out_ptr to equal buf_start
-			;Thus wrapping around the circular queue
-			LDR R3, [R1, #BUF_START]
-			STR R3, [R1, #OUT_PTR]
-
-DEQUEUE_CLEAR_PSR
-			;Clear the PSR C flag
-			MRS R1, APSR
-			MOVS R3, #0x20
-			LSLS R1, R1, #24
-			BICS R1, R1, R3
-			MSR	APSR, R1
-			
-			;Successfully end the operation
-			B END_DEQUEUE
-			
-DEQUEUE_FAILURE
-			;Set PSR C flag to 1
-			MRS R1, APSR
-			MOVS R3, #0x20
-			LSLS R3, R3, #24
-			ORRS R1, R1, R3
-			MSR APSR, R1
-			
-END_DEQUEUE
-			POP {R1, R2, R3, R4}
-			BX	LR
-			
-;--------------------------------------------
-EnQueue
-;EnQueue: Add an element to the circular FIFO Queue
-;Inputs:
-	;R0 - Character to enqueue
-	;R1 - Address of the Queue record
-;Outputs:
-	;PSR C flag (failure if C = 1, C = 0 otherwise.)
-;--------------------------------------------'
-
-			PUSH {R2, R3, R4}
-			
-			;If num_enqd >= size of the queue
-			;Then set PSR C flag to 1 indicating
-			;the error that an element was not inserted
-			;into a full queue
-			
-			LDRB R3, [R1, #NUM_ENQD]
-			LDRB R4, [R1, #BUF_SIZE]
-			CMP R3, R4
-			BGE QUEUE_FULL
-			B BEGIN_ENQUEUE
-			
-QUEUE_FULL
-			;Set PSR C flag to 1
-			MRS R1, APSR
-			MOVS R3, #0x20
-			LSLS R3, R3, #24
-			ORRS R1, R1, R3
-			MSR APSR, R1
-			B END_ENQUEUE
-			
-BEGIN_ENQUEUE
-			
-			;Load mem address of in_ptr
-			;and then store the value to be enqueued
-			;intot he value at that memory address
-			LDR R3, [R1, #IN_PTR]
-			STRB R0, [R3, #0]
-			
-			;Increment value of in_ptr by 1, 1 value past
-			;The queue item. Then store back in IN_PTR
-			ADDS R3, R3, #1
-			STR R3, [R1, #IN_PTR]
-			
-			;Increment number of enqueued elements
-			LDRB R3, [R1, #NUM_ENQD]
-			ADDS R3, R3, #1
-			STRB R3, [R1, #NUM_ENQD]
-			
-			;If IN_PTR is >= BUF_PAST
-			;Loop around and adjust inPtr to beginning of
-			;the queue buffer
-			LDR R3, [R1, #IN_PTR]
-			LDR R4, [R1, #BUF_PAST]
-			
-			CMP R3, R4
-			BGE WRAP_ENQUEUE
-			
-			;Clear the PSR C flag confirming successful result
-			MRS R2, APSR
-			MOVS R3, #0x20
-			LSLS R2, R2, #24
-			BICS R2, R2, R3
-			MSR	APSR, R2
-			
-			B END_ENQUEUE
-			
-WRAP_ENQUEUE
-			;Adjust in_ptr to beginning of queue buffer
-			LDR R2, [R1, #BUF_START]
-			STR R2, [R1, #IN_PTR]
-			
-			;Clear the PSR C flag confirming successful result
-			MRS R2, APSR
-			MOVS R3, #0x20
-			LSLS R2, R2, #24
-			BICS R2, R2, R3
-			MSR	APSR, R2
-			
-END_ENQUEUE
-			
-			POP {R2, R3, R4}
-			BX LR
 
 ;--------------------------------------------
 
@@ -1212,29 +1059,25 @@ __Vectors_Size  EQU     __Vectors_End - __Vectors
 ;Constants
             AREA    MyConst,DATA,READONLY
 ;>>>>> begin constants here <<<<<
-Prompt				DCB "Type a queue command (d, e, h, p, s):", 0
-EnqueuePrompt 		DCB	"Character to enqueue: ", 0
-HelpString			DCB	"d (dequeue), e (enqueue), h (help}, p (print), s (status)", 0
-Success				DCB "Success: ", 0
-Failure				DCB "Failure: ", 0
-Status				DCB "Status: ", 0
-In					DCB "In= ", 0
-Out					DCB "Out= ", 0
-Num					DCB "Num= ", 0
-Spaces				DCB "   ", 0
+;Personal program test vars
+TestString			DCB "Initial string", 0
+
+;Console I/O Vars
+Prompt			DCB "Enter a string command (g,h,m,p,r)>", 0
+Invalid			DCB	":Invalid command", 0
+EnterPrompt		DCB "Please enter a string: ",0
+HelpString		DCB "g (get), h (help), m (modify), p (print), r (reverse)", 0 
+
+
 ;>>>>>   end constants here <<<<<
             ALIGN
 ;****************************************************************
 ;Variables
             AREA    MyData,DATA,READWRITE
 ;>>>>> begin variables here <<<<<
-
-;Memory allocated to store String input from user
-Queue 		SPACE Q_BUF_SZ	
-;6 Byte buffer to store queue information 
-QueueRecord SPACE Q_REC_SZ
 	
-StringReversal		SPACE 2
+StringReversal		SPACE	2
+ResultString		SPACE	MAX_STRING
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
