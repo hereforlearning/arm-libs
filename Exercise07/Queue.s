@@ -157,7 +157,7 @@ UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS  EQU  0xC0
 ;---------------------------------------------------------------
 
 ;Max length of queue
-Q_BUF_SZ				EQU 80
+Q_BUF_SZ				EQU 4
 Q_REC_SZ                EQU 18
 
 ;Max length of prompt string
@@ -246,6 +246,7 @@ PARSE_COMMAND
 			B PROMPT
 			
 PRINT_DEQUEUE
+			BL PutChar
 
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -286,6 +287,7 @@ QUEUE_PRINT_ERROR
 			B	CMD_END
 
 PRINT_ENQUEUE
+			BL PutChar
 
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -331,6 +333,13 @@ PRINT_ENQUEUE
 			B	CMD_END
 			
 ENQUEUE_FAILURE
+
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
 			
 			;Load failure string and print to the console
 			LDR R0, =Failure
@@ -342,6 +351,7 @@ ENQUEUE_FAILURE
 			B	CMD_END
 
 PRINT_HELP
+			BL PutChar
 
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -359,6 +369,7 @@ PRINT_HELP
 			B CMD_END
 
 PRINT_STATUS
+			BL PutChar
 
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -379,6 +390,8 @@ PRINT_STATUS
 			B CMD_END
 
 PRINT_ACTIVE_QUEUE
+
+			BL PutChar
 		
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -462,6 +475,7 @@ PrintQueueStatus
 	BL PutStringSB
 	
 	;Print in_ptr address of queue
+	MOVS R0, R5
 	MOVS R0, R1
 	BL PutNumHex
 	
@@ -602,8 +616,9 @@ DeQueue
 			;Remove the item from the queue
 			;And place in R0
 			LDR R0, [R1, #OUT_PTR]
+			
 			;Load actual queue value into R0
-			LDR R0, [R0, #0]
+			LDRB R0, [R0, #0]
 			
 			;Decrement number of enqueued elements
 			;And store info back in buffer
@@ -613,7 +628,7 @@ DeQueue
 			
 			;Increment location of out_pointer
 			LDR R3, [R1, #OUT_PTR]
-			ADDS R3, R3, #4
+			ADDS R3, R3, #1
 			STR R3, [R1, #OUT_PTR] 
 			
 			;Compare OUT_PTR to BUF_PAST
@@ -627,7 +642,7 @@ WRAP_BUFFER
 			;Adjust out_ptr to equal buf_start
 			;Thus wrapping around the circular queue
 			LDR R3, [R1, #BUF_START]
-			STR R2, [R1, #OUT_PTR]
+			STR R3, [R1, #OUT_PTR]
 
 DEQUEUE_CLEAR_PSR
 			;Clear the PSR C flag
@@ -670,7 +685,7 @@ EnQueue
 			;into a full queue
 			
 			LDRB R3, [R1, #NUM_ENQD]
-			LDR R4, [R1, #BUF_SIZE]
+			LDRB R4, [R1, #BUF_SIZE]
 			CMP R3, R4
 			BGE QUEUE_FULL
 			B BEGIN_ENQUEUE
@@ -690,11 +705,11 @@ BEGIN_ENQUEUE
 			;and then store the value to be enqueued
 			;intot he value at that memory address
 			LDR R3, [R1, #IN_PTR]
-			STR R0, [R3, #0]
+			STRB R0, [R3, #0]
 			
-			;Increment value of in_ptr by 4, 1 value past
+			;Increment value of in_ptr by 1, 1 value past
 			;The queue item. Then store back in IN_PTR
-			ADDS R3, R3, #4
+			ADDS R3, R3, #1
 			STR R3, [R1, #IN_PTR]
 			
 			;Increment number of enqueued elements
@@ -710,11 +725,20 @@ BEGIN_ENQUEUE
 			
 			CMP R3, R4
 			BGE WRAP_ENQUEUE
+			
+			;Clear the PSR C flag confirming successful result
+			MRS R2, APSR
+			MOVS R3, #0x20
+			LSLS R2, R2, #24
+			BICS R2, R2, R3
+			MSR	APSR, R2
+			
 			B END_ENQUEUE
 			
 WRAP_ENQUEUE
 			;Adjust in_ptr to beginning of queue buffer
-			STR R1, [R2, #IN_PTR]
+			LDR R2, [R1, #BUF_START]
+			STR R2, [R1, #IN_PTR]
 			
 			;Clear the PSR C flag confirming successful result
 			MRS R2, APSR
