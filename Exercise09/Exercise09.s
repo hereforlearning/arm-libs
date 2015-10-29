@@ -1225,6 +1225,8 @@ Init_UART0_IRQ
 			 ;Init UART0 for 8N1 format at 9600 Baud,
 			 ;and enable the rx interrupt
 			 
+			 LDR R0, =UART0_BASE
+			 
 			 MOVS R1,#UART0_BDH_9600
              STRB R1,[R0,#UART0_BDH_OFFSET]
              MOVS R1,#UART0_BDL_9600
@@ -1418,7 +1420,7 @@ RxQueue 	  SPACE Q_BUF_SZ
 ;6 Byte buffer to store queue information 
 RxQueueRecord SPACE Q_REC_SZ
 	
-StringReversal		SPACE 2
+			ALIGN
 
 ;Tx Queue
 ;Memory allocated to store String input from user
@@ -1426,12 +1428,16 @@ TxQueue 	  SPACE Q_BUF_SZ
 ;6 Byte buffer to store queue information 
 TxQueueRecord SPACE Q_REC_SZ
 	
-StringReversal1		SPACE 2
+			ALIGN
 	
 ;Memory allocated to store String input from user
 Queue 		SPACE Q_BUF_SZ	
 ;6 Byte buffer to store queue information 
 QueueRecord SPACE Q_REC_SZ
+	
+			ALIGN
+	
+StringReversal		SPACE 2
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
