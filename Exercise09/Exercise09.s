@@ -209,9 +209,8 @@ NUM_ENQD				EQU 17
             IMPORT  Startup
 Reset_Handler
 main
+			CPSID I
 ;---------------------------------------------------------------
-;Mask interrupts
-            CPSID   I
 ;KL46 system startup with 48-MHz system clock
             BL      Startup
 			BL      Init_UART0_IRQ
@@ -493,17 +492,17 @@ CMD_END
 ;-----------------------------------------
 UART0_ISR
 			
+			;Mask other interrupts
+			CPSID I
 			;Pust relevant registers on to the stack
 			PUSH {LR, R0-R3}
 			
-			;Mask other interrupts
-			CPSID I
 			
 			LDR R0, =UART0_BASE
 			
 			;If txinterrupt enabled (UART0_C2 Bit 7 is set)
 			LDRB R1,[R0,#UART0_C2_OFFSET]
-			MOVS R2, #0x40
+			MOVS R2, #0x80
 			
 			ANDS R1, R1, R2
 			
@@ -516,7 +515,7 @@ UART0_ISR
 TX_ENABLED
 			
 			LDRB R1,[R0,#UART0_S1_OFFSET]
-			MOVS R2, #0x40
+			MOVS R2, #0x80
 			
 			ANDS R1, R1, R2
 			CMP R1, #0
@@ -885,16 +884,16 @@ END_ENQUEUE
 ;Return - N/A
 ;--------------------------------------------
 PutChar
-			PUSH {R1, R2}
+			PUSH {R1, LR}
 			
 REPEAT_ENQ
-			;Mask all other rinterrupts
 			
 			;Load input params to initalize queue structure
 			LDR R1, =TxQueueRecord
-			MOVS R2, #Q_BUF_SZ
 			
+			;Mask all other interrupts
 			CPSID I
+			
 			;Critical section -> enqueue character
 			;Enqueue character that's already in R0
 			BL	EnQueue
@@ -905,13 +904,13 @@ REPEAT_ENQ
 			BCS REPEAT_ENQ
 			
 			;Enable UART0 Transmitter, reciever, and rx interrupt
+			LDR R0, =UART0_BASE
 		    MOVS R1,#UART0_C2_TI_RI
             STRB R1,[R0,#UART0_C2_OFFSET]
 			
 			;Pop original register values off the stack
-			POP {R1, R2}
-			
-			BX LR
+			POP {R1, PC}
+
 ;--------------------------------------------
             
 ;Receive a character from UART0 using interrupts
@@ -1143,6 +1142,10 @@ Init_UART0_IRQ
 ;Initalize UART0 for Serial Driver
 ;---------------------------------------------------------------
 
+			;Allocate R0-2 for Ri=k 
+			;Store prevoius values for restoration
+			PUSH {R0, R1, R2, LR}
+
 			;Initalize rxQueue
 			LDR R1, =RxQueueRecord
 			LDR R0, =RxQueue
@@ -1155,10 +1158,6 @@ Init_UART0_IRQ
 			MOVS R2, #Q_BUF_SZ
 			
 			BL InitQueue
-
-			;Allocate R0-2 for Ri=k 
-			;Store prevoius values for restoration
-			PUSH {R0, R1, R2}
 
 		    ;Select MCGPLLCLK / 2 as UART0 clock source
 		     LDR R0,=SIM_SOPT2
@@ -1219,7 +1218,7 @@ Init_UART0_IRQ
 		     STR R1, [R0, #0]
 
 		     ;Unmask UART0 interrupts
-             LDR R0, =NVIC_ISPR
+             LDR R0, =NVIC_ISER
 		     LDR R1, =NVIC_ISER_UART0_MASK
 		     STR R1, [R0, #0]
 			 
@@ -1249,10 +1248,8 @@ Init_UART0_IRQ
              STRB R1,[R0,#UART0_C2_OFFSET] 
 				
 	       	 ;Pop prevous R0-2 values off the stack.
-			 POP {R0, R1, R2}
-
-			 BX LR	
-
+			 POP {R0, R1, R2, PC}
+			 
 ;PutNumU: Print ASCII value to terminal screen
 ;Inputs:
 	;R0 - Character to print
@@ -1415,24 +1412,26 @@ Spaces				DCB "   ", 0
             AREA    MyData,DATA,READWRITE
 ;>>>>> begin variables here <<<<<
 
+;Rx Queue
+;Memory allocated to store String input from user
+RxQueue 	  SPACE Q_BUF_SZ	
+;6 Byte buffer to store queue information 
+RxQueueRecord SPACE Q_REC_SZ
+	
+StringReversal		SPACE 2
+
+;Tx Queue
+;Memory allocated to store String input from user
+TxQueue 	  SPACE Q_BUF_SZ	
+;6 Byte buffer to store queue information 
+TxQueueRecord SPACE Q_REC_SZ
+	
+StringReversal1		SPACE 2
+	
 ;Memory allocated to store String input from user
 Queue 		SPACE Q_BUF_SZ	
 ;6 Byte buffer to store queue information 
 QueueRecord SPACE Q_REC_SZ
-
-;Rx Queue
-;Memory allocated to store String input from user
-RxQueue 		SPACE Q_BUF_SZ	
-;6 Byte buffer to store queue information 
-RxQueueRecord SPACE Q_REC_SZ
-
-;Tx Queue
-;Memory allocated to store String input from user
-TxQueue 		SPACE Q_BUF_SZ	
-;6 Byte buffer to store queue information 
-TxQueueRecord SPACE Q_REC_SZ
-	
-StringReversal		SPACE 2
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
