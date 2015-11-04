@@ -497,7 +497,6 @@ UART0_ISR
 			;Pust relevant registers on to the stack
 			PUSH {LR, R0-R3}
 			
-			
 			LDR R0, =UART0_BASE
 			
 			;If txinterrupt enabled (UART0_C2 Bit 7 is set)
@@ -523,7 +522,7 @@ TX_ENABLED
 			
 			;Dequeue character
 			;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
+			LDR R1, =TxQueueRecord
 			MOVS R2, #Q_BUF_SZ
 			
 			BL DeQueue
@@ -532,9 +531,7 @@ TX_ENABLED
 			BCS DISABLE_TX
 			
 			;Dequeue was successful
-			;Poll TDRE Until UART0 is ready for transmit
 			LDR R1, =UART0_BASE
-			MOVS R2, #UART0_S1_TDRE_MASK
 			
 			;Transmit Character Stored in R0
 			STRB R0, [R1, #UART0_D_OFFSET]
@@ -551,17 +548,14 @@ DISABLE_TX
 			
 CHECK_RX_INT
 			
-			;Fetch character from RDRF
-			LDR R1, =UART0_BASE
-			MOVS R2, #UART0_S1_RDRF_MASK
-			
 			;Receive character and store in R0
-			LDRB R3, [R1, #UART0_D_OFFSET]
+			LDR R0, =UART0_BASE
+			LDRB R3, [R0, #UART0_D_OFFSET]
 			
 			;Enqueue character with character stored in R0
 			;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
-			MOVS R2, #Q_BUF_SZ
+			LDR R1, =RxQueueRecord
+			MOVS R0, R3
 			
 			BL EnQueue
 			
@@ -575,7 +569,7 @@ END_ISR
 			CPSIE I
 			
 			;Return back to our business
-			POP {PC, R0-R3}
+			POP {R0-R3, PC}
 
 PrintQueueStatus
 ;PrintQueueStatus: Print the inpointer, outpointer, and
@@ -919,12 +913,12 @@ REPEAT_ENQ
 ; R0 - Character dequeued from RxQueue
 ;--------------------------------------------
 GetChar
-	PUSH {R1, R2} ; Push varibles on the stack to avoid loss
+	PUSH {R1, R2, LR} ; Push varibles on the stack to avoid loss
+	
+	LDR R1, =RxQueueRecord
 
 REPEAT_DEQ
 
-	LDR R1, =RxQueueRecord
-	MOVS R2, #Q_BUF_SZ
 	;Mask all interrupts
 	CPSID I	
 	
@@ -936,8 +930,7 @@ REPEAT_DEQ
 	
 	BCS REPEAT_DEQ
 	
-	POP {R1, R2}
-	BX	LR
+	POP {R1, R2, PC}
 			
 ;--------------------------------------------
 
@@ -1205,9 +1198,17 @@ Init_UART0_IRQ
 
 		     ;Set UART0 IRQ Priority
 		     LDR R0, =UART0_IPR
+			 
+			 ;TODO: Do I need this?
+			 LDR R1, =NVIC_IPR_UART0_MASK
+			 
 		     LDR R2, =NVIC_IPR_UART0_PRI_3
 
 		     LDR R3, [R0, #0]
+			 
+			 ;TODO: Do I need this?
+			 BICS R3, R3, R1
+			 
              ORRS R3, R3, R2
 
 	         STR R3, [R0, #0]
