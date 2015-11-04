@@ -285,9 +285,6 @@ PRINT_DEQUEUE
 			
 			;Load input params to initalize queue structure
 			LDR R1, =QueueRecord
-			LDR R0, =Queue
-			MOVS R2, #Q_BUF_SZ
-			
 			BL DeQueue
 			
 			;ASPR C flag set to 1, print that the queue is empty
@@ -482,7 +479,27 @@ CMD_END
 	    LTORG
 ;>>>>> begin subroutine code <<<<<
 
-;-----------------------------------------
+;-------------------------------------------
+PutNumUB
+;PutNumUB: Print the least significant unsigned 
+;byte value from R0 to the screen. 
+
+;Inputs:
+	;R0 = value to print to the terminal screen in UB form
+;Outputs
+	;N/A
+;-------------------------------------------
+			PUSH {R1, LR}
+			MOVS R1, #0xFF
+			
+			;Mask off everything but the last byte
+			ANDS R0, R0, R1
+			
+			BL PutNumU
+			
+			POP {R1, PC}
+
+;-------------------------------------------
 ;UART0_ISR
 ;Interrupt service routine for UART0 
 ;Check status of interrupt that triggered the ISR
@@ -547,6 +564,15 @@ DISABLE_TX
 			B END_ISR
 			
 CHECK_RX_INT
+			LDR R0, =UART0_BASE
+			
+			;Check if an RxInterrupt exists
+			LDRB R1,[R0,#UART0_S1_OFFSET]
+			MOVS R2, #0x10
+			
+			ANDS R1, R1, R2
+			CMP R1, #0
+			BEQ END_ISR
 			
 			;Receive character and store in R0
 			LDR R0, =UART0_BASE
@@ -570,7 +596,9 @@ END_ISR
 			
 			;Return back to our business
 			POP {R0-R3, PC}
+			
 
+;-------------------------------------------
 PrintQueueStatus
 ;PrintQueueStatus: Print the inpointer, outpointer, and
 ;number of elements that are enqueued in the current queue.
@@ -615,7 +643,7 @@ PrintQueueStatus
 	
 	;Print number of elements currently enqueued
 	MOVS R0, R3
-	BL PutNumU
+	BL PutNumUB
 	
 	;Call it a day
 	POP {R0, R1, R2, R3, PC}	
