@@ -415,6 +415,10 @@ PRINT_STATUS
 PRINT_ACTIVE_QUEUE
 
 			BL PutChar
+			
+			PUSH {R0-R5}
+			
+			LDR R1, =QueueRecord
 		
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -423,50 +427,56 @@ PRINT_ACTIVE_QUEUE
 			MOVS R0, #0x0A
 			BL PutChar
 			
-			PUSH {R0-R4}
-			
-			;Print first delimeter to print queue contents
 			MOVS R0, #'>'
-			BL	PutChar
-			
-			;Load input params to initalize queue structure
-			LDR R1, =QueueRecord
-			LDR R0, =Queue
-			
-			LDR R2, [R1, #IN_PTR]
-			LDR R3, [R1, #OUT_PTR]
-			
-PRINT_NEXT
-			;if we've reached buf_past, we've hit the end of the queue
-			CMP R3, R2
-			BGE QUEUE_END_REACHED
-			
-			;Print queue character 
-			LDRB R4, [R3, #0]
-			
-			;Move char to R0 to print
-			PUSH {R0}
-			MOVS R0, R4
 			BL PutChar
-			POP {R0}
 			
-			;Increment memory address to look for next queue char
-			ADDS R3, #4
-			B PRINT_NEXT
+			;Load position of out pointer
+			LDR R4, [R1, #OUT_PTR]
 			
-QUEUE_END_REACHED
+			;Load position of buffer past 
+			LDR R5, [R1, #BUF_PAST]
 			
-			;Print ending delimeters, carrige return and line feed
+			;Load number of values enqueued
+			LDRB R3, [R1, #NUM_ENQD]
+			
+PRINT_ELE			
+			CMP R3, #0
+			BLE PRT_END
+			
+			;Put current OutPtr position into R0
+			MOVS R0, R4
+			
+			;Load actual queue value into R0
+			LDRB R0, [R0, #0]
+			
+			;Print queue character to the terminal
+			BL PutChar
+			
+			;Add 1 to outPTR value
+			ADDS R4, R4, #1
+			
+			;elements counter --
+			SUBS R3, R3, #1
+			
+			;Compare OUT_PTR to BUF_PAST
+			;If out_ptr >= BUF_PAST, wrap the queue around
+		
+			CMP R4, R5
+			BGE WRP_PRT_BUF
+			B PRINT_ELE
+			
+WRP_PRT_BUF
+			;Adjust out_ptr to equal buf_start
+			;Thus wrapping around the circular queue
+			LDR R4, [R1, #BUF_START]
+			B PRINT_ELE
+			
+PRT_END
 			MOVS R0, #'<'
 			BL PutChar
-			MOVS R0, #0x0D
-			BL PutChar
-			MOVS R0, #0x0A
-			BL PutChar
-			
-			POP {R0-R4}	
+			POP{R0-R5}
 			B CMD_END
-			
+
 CMD_END
 			;Return to initial prompt
 			B PRINT_PROMPT
@@ -906,7 +916,7 @@ END_ENQUEUE
 ;Return - N/A
 ;--------------------------------------------
 PutChar
-			PUSH {R1, LR}
+			PUSH {R0, R1, LR}
 			
 REPEAT_ENQ
 			
@@ -931,7 +941,7 @@ REPEAT_ENQ
             STRB R1,[R0,#UART0_C2_OFFSET]
 			
 			;Pop original register values off the stack
-			POP {R1, PC}
+			POP {R0, R1, PC}
 
 ;--------------------------------------------
             
