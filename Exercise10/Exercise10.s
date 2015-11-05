@@ -220,8 +220,6 @@ PIT_TCTRL_CH_IE  EQU  (PIT_TCTRL_TEN_MASK :OR: PIT_TCTRL_TIE_MASK)
 PIT_IRQ_PRI 	 EQU 0
 ;---------------------------------------------------
 
-
-
 ;Max length of queue
 Q_BUF_SZ				EQU 4
 Q_REC_SZ                EQU 18
@@ -235,6 +233,8 @@ BUF_START				EQU 8
 BUF_PAST				EQU 12
 BUF_SIZE				EQU 16
 NUM_ENQD				EQU 17
+	
+FiveSec			EQU	 50
 
 ;****************************************************************
 ;Program
@@ -245,16 +245,30 @@ NUM_ENQD				EQU 17
             IMPORT  Startup
 Reset_Handler
 main
-			CPSID I
+			
 ;---------------------------------------------------------------
 ;KL46 system startup with 48-MHz system clock
+			CPSID I
+
             BL      Startup
-			BL      Init_UART0_IRQ
 			
 			;Enable clock interrupts
+			BL      Init_UART0_IRQ
 			BL 		Init_PIT_IRQ
 
-;>>>>> begin main program code <<<<<
+PRINT_PROMPT
+			;Initalize RunStopwatch and Count to 0
+			LDR R0, =RunStopWatch
+			MOVS R1, #0
+			STRB R1, [R0, #0]
+			
+			LDR R0, =Count
+			MOVS R1, #0
+			STR R1, [R0, #0]
+			
+			;Print out the initial prompt
+			LDR R0, =AccessCodePrompt
+			BL PutStringSB
 			
 			;Print CR and LF to the screen
 			MOVS R0, #0x0D
@@ -263,8 +277,124 @@ main
 			MOVS R0, #0x0A
 			BL PutChar
 			
+			MOVS R0, #">"
+			BL PutChar
+			
+			;Initalize RunStopwatch to 1 and Count to 0
+			LDR R0, =Count
+			MOVS R1, #0
+			STR R1, [R0, #0]
+			
+			LDR R0, =RunStopWatch
+			MOVS R1, #1
+			STRB R1, [R0, #0]
+			
+			;Accept string of user input for the code
+			MOVS R1, #MAX_STRING
+			LDR R0, =InputString
+			BL GetStringSB
+			
+			;Set RunStopWatch to 0
+			LDR R0, =RunStopWatch
+			MOVS R1, #0
+			STRB R1, [R0, #0]
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			MOVS R0, #'<'
+			BL PutChar
+			
+			;Print the value of count once the access code is entered
+			LDR R0, =Count
+			LDR R0, [R0, #0]
+			MOVS R1, R0
+			
+			;Print value of count followed by ' x .01 s'
+			BL PutNumU
+			
+			LDR R0, =TimeString
+			BL PutStringSB
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			;Divide count value by 10 for accurate comparisons
+			MOVS R0, #10
+			
+			BL DIVU
+			
+			CMP R0, #FiveSec
+			BGE MISSION_FAILURE
+			
+			LDR R0, =InputString
+			LDR R1, =SecretCode
+			
+			;Length of the secret code
+			MOVS R2, #7
+			
+CHECK_CHAR
+			LDRB R3, [R0, R2]
+			LDRB R4, [R1, R2]
+			
+			CMP R3, R4
+			
+			;If access code equals 25015110, access is granted
+			BNE MISSION_FAILURE
+			
+			;If we have processed all characters without failure, the string matches
+			CMP R2, #0
+			BEQ MISSION_COMPLETE
+			
+			;Continue checking characters
+			SUBS R2, R2, #1
+			B CHECK_CHAR
+			
+
+MISSION_COMPLETE
+			LDR R0, =Granted
+			BL PutStringSB
+			
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			LDR R0, =Complete
+			BL PutStringSB
+			
+			;Print CR and LF to the screen
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			B PRINT_PROMPT
+			
+MISSION_FAILURE
+			LDR R0, =Denied
+			BL PutStringSB
+			
+			MOVS R0, #0x0D
+			BL PutChar
+			
+			MOVS R0, #0x0A
+			BL PutChar
+			
+			B PRINT_PROMPT
 ;>>>>>   end main program code <<<<<
 ;Stay here
+END_PROGRAM
             B       .
 	    
 	    ;Increase memory to store code segments?
@@ -302,7 +432,6 @@ PutNumUB
 ;The ISR then clears the interrupt condition and returns
 ;-----------------------------------------
 PIT_ISR
-			PUSH {R0-R1, LR}
 			
 			LDR R0, =RunStopWatch
 			LDRB R0, [R0, #0]
@@ -314,18 +443,18 @@ PIT_ISR
 INCR_COUNT
 			;Add #1 to count if stopwatch is running
 			LDR R0, =Count
-			LDRB R1, [R0, #0]
+			LDR R1, [R0, #0]
 			ADDS R1, R1, #1
 			STR R1, [R0, #0]
 
 END_PIT_ISR
-			;Clear interrup condition
+			;Clear interrupt condition
 			LDR R0, =PIT_CH0_BASE
 			LDR R1, =PIT_TFLG_TIF_MASK
 			
 			STR R1, [R0, #PIT_TFLG_OFFSET]
 			
-			POP {R0-R1, PC}
+			BX LR
 
 ;-------------------------------------------
 ;UART0_ISR
@@ -893,6 +1022,7 @@ END_GET_LEN
 ;--------------------------------------------
 
 DIVU
+;R1 / R0 = R0 Remainder R1
 ;--------------------------------------------
 			PUSH {R2,R3}		; Preserve state of Registers, will be using for computation
 			CMP R0, #0
@@ -1069,6 +1199,10 @@ Init_PIT_IRQ
 ;Inputs: N/A
 ;Outputs: N/A
 ;---------------------------------------------
+
+			CPSID I
+			
+			PUSH {R0, R1, R2, LR}
 			
 			LDR R0, =SIM_SCGC6
 			LDR R1, =SIM_SCGC6_PIT_MASK
@@ -1121,6 +1255,10 @@ Init_PIT_IRQ
 			LDR R0, =PIT_IPR
 			LDR R1, =(PIT_IRQ_PRI << PIT_PRI_POS)
 			STR R1, [R0, #0]
+			
+			CPSIE I
+			
+			POP {R0, R1, R2, PC}
 
 ;--------------------------------------------
 			 
@@ -1269,7 +1407,12 @@ __Vectors_Size  EQU     __Vectors_End - __Vectors
 ;Constants
             AREA    MyConst,DATA,READONLY
 ;>>>>> begin constants here <<<<<
+TimeString			DCB " x 0.01 s", 0
 AccessCodePrompt	DCB "Enter the access code.", 0
+Granted				DCB "--Access granted", 0
+Denied				DCB "--Access denied", 0
+Complete			DCB "Mission completed!", 0
+SecretCode			DCB "25015110", 0
 ;>>>>>   end constants here <<<<<
             ALIGN
 ;****************************************************************
@@ -1299,11 +1442,13 @@ Queue 		SPACE Q_BUF_SZ
 QueueRecord SPACE Q_REC_SZ
 	
 			ALIGN
-				
-RunStopWatch	SPACE 1
-Count			SPACE 4
 	
-StringReversal		SPACE 2
+StringReversal	SPACE 2
+			ALIGN
+RunStopWatch	SPACE 1
+			ALIGN
+Count			SPACE 4
+InputString		SPACE MAX_STRING
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
