@@ -16,6 +16,21 @@
 #define MAX_STRING (79)
 #define NUMBER_BITS (128)
 
+int len(char String[]) {
+	unsigned int i;
+	unsigned int count = 1;
+	
+  for(i = 0; i < MAX_STRING; i++) {
+	  if (String[i] == 0) {
+		  /*Found a null, we're done here.*/
+			return count - 1;
+		}
+		count++;
+	}
+	
+	return count;
+}
+
 /*********************************************************************/
 /* Gets user string input of hex representation of an multiword      */
 /* unsigned number of NumWords words, and converts it to a binary    */
@@ -24,7 +39,27 @@
 /* Calls:  GetStringSB                                               */
 /*********************************************************************/
 int GetHexIntMulti (UInt32 *Number, int NumWords) {
-  return 1;
+	
+	unsigned int i;
+	
+	/*Define memory location and take in user input string*/
+	char input[MAX_STRING];
+	GetStringSB(input, MAX_STRING);
+
+	for (i = 0; i < len(input); i++) {
+		if (input[i] == 0) {
+			PutStringSB("Found null pointer\r\n", MAX_STRING);
+		}
+		switch(input[i]) {
+		  case '0': 
+				PutStringSB("Found a zero\r\n", MAX_STRING); break;
+			default:
+				PutStringSB("Character not recognized\r\n", MAX_STRING);
+		}
+	}
+	
+	/* Default placeholder for now*/
+	return 1;
 } 
 
 /*********************************************************************/
@@ -35,17 +70,17 @@ int GetHexIntMulti (UInt32 *Number, int NumWords) {
 void PutHexIntMulti (UInt32 *Number, int NumWords) {
 
 }
-  
+
 int main (void) {
-  /* >>>>> Variable declarations here <<<<< */    
+  UInt32* number;
 
   __asm("CPSID   I");  /* mask interrupts */
   Startup ();
   Init_UART0_IRQ ();
 	
-	PutStringSB("Hello World\r\n", MAX_STRING);
-	PutStringSB("Hello World\r\n", MAX_STRING);
-	PutStringSB("Hello World\r\n", MAX_STRING);
+	PutStringSB("Enter first 128 bit hex number: ", MAX_STRING);
+	
+	GetHexIntMulti(number, 2);
 	
   return (0);
 } 
