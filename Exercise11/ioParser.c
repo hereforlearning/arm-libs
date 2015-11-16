@@ -22,18 +22,18 @@
 * around to use lengthstringsb
 */
 int len(char String[]) {
-	unsigned int i;
-	unsigned int count = 1;
+  unsigned int i;
+  unsigned int count = 0;
 	
   for(i = 0; i < MAX_STRING; i++) {
-	  if (String[i] == 0) {
-		  /*Found a null, we're done here.*/
-			return count - 1;
-		}
-		count++;
-	}
-	
-	return count;
+    if (String[i] == 0) {
+	  return count;
+    }
+    else {
+      count++;   
+    }
+  }
+  return count;
 }
 
 /*********************************************************************/
@@ -50,19 +50,20 @@ int GetHexIntMulti (UInt32 *Number, int NumWords) {
 	int lowerAsciiHexConvert = 87;
 	int upperAsciiHexConvert = 55;
 	int decimalAsciiConvert = '0';
-	
+    
+    int byteToStore = 0;
+    int binaryRep;
+    
 	/*Define memory location and take in user input string*/
-	char input[MAX_STRING];
-	GetStringSB(input, MAX_STRING);
+    char input[MAX_STRING];
+	GetStringSB(input, NumWords * 8);
 	
 	if(NumWords * 8 != len(input)) {
-    /*Incorrect number of characters provided.*/
-		return 1;
-  }		
+      /*Incorrect number of characters provided.*/
+      return 1;
+    }		
 
 	for (i = 0; i < len(input); i++) {
-		int binaryRep;
-		int byteToStore;
 		
 		/*Convert to upper case representation if lowercase hex*/
 		if(input[i] >= 'a' && input[i] <= 'f') {
@@ -85,14 +86,14 @@ int GetHexIntMulti (UInt32 *Number, int NumWords) {
 		/*First half byte is being processed,
 		* Concatenate it to the next byte before storing. */
 		if(i % 2 == 0) {
-	    byteToStore = binaryRep << 4;
+	      byteToStore = binaryRep << 4;
 		}
 		/* Combine two values into a byte to store. */
 		else {
 			byteToStore = byteToStore + binaryRep;
 			
 			/*Actually store the value to the number*/
-			((UInt8 *) Number)[0] = byteToStore; 
+			((UInt8 *) Number)[i / 2] = byteToStore; 
 		}
 	}
 	
@@ -132,15 +133,28 @@ void PutHexIntMulti (UInt32 *Number, int NumWords) {
 }
 
 int main (void) {
-  UInt32* number;
+  UInt128 number;
+  int result = 1;
 
   __asm("CPSID   I");  /* mask interrupts */
   Startup ();
   Init_UART0_IRQ ();
 	
 	PutStringSB("Enter first 128 bit hex number: ", MAX_STRING);
-	
-	GetHexIntMulti(number, 2);
+    result = GetHexIntMulti(number.Word, 4);
+    
+    while(result != 0) {
+      PutStringSB("Invalid number--try again: ", MAX_STRING);
+      result = GetHexIntMulti(number.Word, 4);
+    }
+    
+    PutStringSB("Enter 128-bit hex number to add: ", MAX_STRING);
+	result = GetHexIntMulti(number.Word, 4);
+    
+    while(result != 0) {
+      PutStringSB("Invalid number--try again: ", MAX_STRING);
+      result = GetHexIntMulti(number.Word, 4);
+    }
 	
   return (0);
 } 
