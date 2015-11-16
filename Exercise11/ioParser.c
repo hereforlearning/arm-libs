@@ -15,6 +15,8 @@
 #define MAX_HEX_STRING ((sizeof(UInt128) << 1) + 1)
 #define MAX_STRING (79)
 #define NUMBER_BITS (128)
+#define NUMBER_WORDS (4)
+#define NUM_CHARS ((NUMBER_WORDS * 8) + 1)
 
 /*
 * Define function to determine the length of a 
@@ -34,6 +36,15 @@ int len(char String[]) {
     }
   }
   return count;
+}
+
+int convToAscii(int numericRep) {
+  if(numericRep >= 0 && numericRep <= 9) {
+    return numericRep + '0'; 
+  }
+  else {
+    return numericRep + 55;
+  }
 }
 
 /*********************************************************************/
@@ -107,25 +118,31 @@ int GetHexIntMulti (UInt32 *Number, int NumWords) {
 /* Calls:  PutStringSB                                               */
 /*********************************************************************/
 void PutHexIntMulti (UInt32 *Number, int NumWords) {
-	int numBytes = NumWords * 8;
+    
+    int count = 0;
+	int numBytes = NumWords * 4;
+    char resultString[NUM_CHARS];
 	unsigned int i;
-	char* resultString;
 	
 	for(i = 0; i < numBytes; i++) {
 		/*Read each byte of each word provided */
 		int byteValue = ((UInt8 *) Number) [i];
 
-		int leastSigByteMsk = 0x01;
+		int leastSigByteMsk = 0x0F;
 		int leastSigChar = byteValue & leastSigByteMsk; 
 		
-		int mostSigByteMsk = 0x10;
-		int mostSigChar = byteValue & mostSigByteMsk >> 4;
+		int mostSigByteMsk = 0xF0;
+		int mostSigChar = (byteValue & mostSigByteMsk) >> 4;
 		
 		/* Convert characters to their appropriate ASCII format */ 
-		
+        mostSigChar = convToAscii(mostSigChar);
+        leastSigChar = convToAscii(leastSigChar);
+        
 		/* Rebuild the result string */
-		resultString[sizeof(resultString) - i + 1] = mostSigChar;
-		resultString[sizeof(resultString) - i] = leastSigChar;
+		resultString[count] = mostSigChar;
+        count++;
+		resultString[count] = leastSigChar;
+        count++;
 	}
 	
 	/*Print result string to the console. */
@@ -133,28 +150,41 @@ void PutHexIntMulti (UInt32 *Number, int NumWords) {
 }
 
 int main (void) {
-  UInt128 number;
-  int result = 1;
+  
+    UInt128 num1;
+    UInt128 num2;
+    
+    int result = 1;
+    
+    __asm("CPSID I");  /* mask interrupts */
+    
+    Startup ();
+    Init_UART0_IRQ ();
+	
+    PutStringSB("Enter first 128 bit hex number:  0x", MAX_STRING);
+    result = GetHexIntMulti(num1.Word, 4);
 
-  __asm("CPSID   I");  /* mask interrupts */
-  Startup ();
-  Init_UART0_IRQ ();
-	
-	PutStringSB("Enter first 128 bit hex number: ", MAX_STRING);
-    result = GetHexIntMulti(number.Word, 4);
-    
     while(result != 0) {
-      PutStringSB("Invalid number--try again: ", MAX_STRING);
-      result = GetHexIntMulti(number.Word, 4);
+      PutStringSB("\r\nInvalid number--try again:       0x", MAX_STRING);
+      result = GetHexIntMulti(num1.Word, 4);
+    }
+
+    PutStringSB("\r\nEnter 128-bit hex number to add: 0x", MAX_STRING);
+    result = GetHexIntMulti(num2.Word, 4);
+
+    while(result != 0) {
+      PutStringSB("\r\nInvalid number--try again:       0x", MAX_STRING);
+      result = GetHexIntMulti(num2.Word, 4);
     }
     
-    PutStringSB("Enter 128-bit hex number to add: ", MAX_STRING);
-	result = GetHexIntMulti(number.Word, 4);
+    /* Print word back to terminal as test before arithmetic */
+    PutStringSB("\r\n", MAX_STRING);
+    PutHexIntMulti(num1.Word, 4);
     
-    while(result != 0) {
-      PutStringSB("Invalid number--try again: ", MAX_STRING);
-      result = GetHexIntMulti(number.Word, 4);
-    }
+    /* Add some numbers together */
+    AddIntMultiU()
+    
+    PutStringSB("All done!", MAX_STRING);
 	
-  return (0);
+    return (0);
 } 
