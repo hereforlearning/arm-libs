@@ -261,7 +261,7 @@ Dummy_Handler
             EXPORT  __initial_sp
 ;Allocate system stack
             IF      :LNOT::DEF:SSTACK_SIZE
-SSTACK_SIZE EQU     0x00000100
+SSTACK_SIZE EQU     0x00000200
             ENDIF
 Stack_Mem   SPACE   SSTACK_SIZE
 __initial_sp

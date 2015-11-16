@@ -154,6 +154,8 @@ int main (void) {
     UInt128 num1;
     UInt128 num2;
     
+    UInt128 resultAddress;
+    
     int result = 1;
     
     __asm("CPSID I");  /* mask interrupts */
@@ -162,28 +164,26 @@ int main (void) {
     Init_UART0_IRQ ();
 	
     PutStringSB("Enter first 128 bit hex number:  0x", MAX_STRING);
-    result = GetHexIntMulti(num1.Word, 4);
+    result = GetHexIntMulti(num1.Word, NUMBER_WORDS);
 
     while(result != 0) {
       PutStringSB("\r\nInvalid number--try again:       0x", MAX_STRING);
-      result = GetHexIntMulti(num1.Word, 4);
+      result = GetHexIntMulti(num1.Word, NUMBER_WORDS);
     }
 
     PutStringSB("\r\nEnter 128-bit hex number to add: 0x", MAX_STRING);
-    result = GetHexIntMulti(num2.Word, 4);
+    result = GetHexIntMulti(num2.Word, NUMBER_WORDS);
 
     while(result != 0) {
       PutStringSB("\r\nInvalid number--try again:       0x", MAX_STRING);
-      result = GetHexIntMulti(num2.Word, 4);
+      result = GetHexIntMulti(num2.Word, NUMBER_WORDS);
     }
     
-    /* Print word back to terminal as test before arithmetic */
-    PutStringSB("\r\n", MAX_STRING);
-    PutHexIntMulti(num1.Word, 4);
-    
     /* Add some numbers together */
-    AddIntMultiU()
+    AddIntMultiU(resultAddress.Word, num1.Word, num2.Word, NUMBER_WORDS);
     
+    PutStringSB("\r\n", MAX_STRING);
+    PutHexIntMulti(resultAddress.Word, NUMBER_WORDS);
     PutStringSB("All done!", MAX_STRING);
 	
     return (0);

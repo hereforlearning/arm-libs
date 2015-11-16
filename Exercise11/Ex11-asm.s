@@ -205,6 +205,162 @@ NUM_ENQD				EQU 17
 			EXPORT GetStringSB
 			EXPORT PutStringSB
 			EXPORT Init_UART0_IRQ
+            EXPORT AddIntMultiU
+                
+;-------------------------------------------
+AddIntMultiU
+;Add the n-word unsigned number in register R2 to 
+;the n-word unsigned numbe rin register R1. The result
+;is then stored in memory at address R0. The value located
+;in R3 is the number of words of each number that will be added.
+;R0 is then overwritten with either a 0 for success or the 
+;value of 1 for failure (overflow)
+
+;Load in values one word (register) at a time
+;And add using ADCS to utilize the state of the ASPR c 
+;bit when carrying operations over.
+
+;Inputs:
+	;R0 = mem address to store result added number
+    ;R1 = mem address of number 1 to add
+    ;R2 = mem address of number 2 to add
+    ;R3 = size (number of words) that numbers in R1 and R2 coorespond to
+;Outputs
+	;R0 = Status value (0 for success and 1 for overflow)
+;-------------------------------------------
+            PUSH {R1-R7, LR}
+            
+            PUSH {R0-R1}
+            ;Initalize state of APSR C Flag
+            LDR R0, =APSRState
+            MOVS R1, #0;
+            STRB R1, [R0, #0]
+            POP {R0-R1}
+            
+            ;Initalize offset value
+            MOVS R5, #0
+
+ADD_WORD
+            CMP R3, #0
+            BEQ ADD_COMPLETE
+            
+            ;Since memory values are little endian,
+            ;The least significant up to most significant
+            ;Words can just be loaded into registers one by one.
+            LDR R6, [R1, R5]
+            LDR R7, [R2, R5]
+            
+            ;Decrement word count
+            SUBS R3, R3, #1
+            
+            ;Increment offset to grab the next word from memory
+            ADDS R5, R5, #4
+            
+            PUSH {R5}
+            
+            ;Get appropriate memory address to store to memory 
+            SUBS R5, R5, #4
+            
+            ;Load state of APSR after last add.
+            BL SetAPSRState
+            
+            ;Add factoring in the carry value from previous op
+            ADCS R6, R6, R7
+            
+            ;Save state of APSR C after add
+            BL WriteAPSRC
+            
+            ;Write the result to the appropriate location in memory
+            ;(the same offset from where each input variable was read)
+            
+            STR R6, [R0,R5]
+            
+            POP {R5}
+            
+            ;When carry is set from ADCS and we are on the
+            ;Final word, we know overflow has occurred.
+            BCS CHECK_OVERFLOW
+            
+            ;Otherwise, just continue adding words
+            B ADD_WORD
+
+CHECK_OVERFLOW
+            ;We're in the middle of adding multiple words
+            ;Dont check for overflow until we hit the most significant
+            CMP R3, #0
+            BNE ADD_WORD
+            
+            ;Else, signal that overflow has occured with n-word addition
+            MOVS R0, #1
+
+ADD_COMPLETE
+            ;If overflow bit has already been set,
+            ;Make sure that it is not cleared
+            CMP R0, #1
+            BNE SET_SUCCESS
+            B END_SUB
+            
+SET_SUCCESS
+            ;On successful operation, set R0 to 0
+            MOVS R0, #0
+
+END_SUB
+            POP {R1-R7, PC}
+            
+;-------------------------------------------
+WriteAPSRC
+
+            PUSH {R0-R2}
+
+            MRS R0, APSR
+            LSRS R0, #28
+            
+            MOVS R1, #2
+            
+            ANDS R0, R0, R1
+            
+            LSRS R0, R0, #2
+            
+            LDR R1, =APSRState
+            STRB R0, [R1, #0]
+            
+            POP {R0-R2}
+            
+            BX LR
+;-------------------------------------------
+
+SetAPSRState
+
+            PUSH {R0-R3}   
+            
+            LDR R0, =APSRState
+            LDRB R0, [R0, #0]
+            
+            CMP R0, #0
+            
+            BNE SET_C_APSR
+            
+            ;Clear C flag otherwise
+            MRS R2, APSR
+			MOVS R3, #0x20
+			LSLS R2, R2, #24
+			BICS R2, R2, R3
+			MSR	APSR, R2
+            
+            B END_SET_SUB
+
+SET_C_APSR
+            MRS R2, APSR
+			MOVS R3, #0x20
+			LSLS R3, R3, #24
+			ORRS R2, R2, R3
+			MSR APSR, R2
+            
+END_SET_SUB
+            POP {R0 - R3}
+            BX LR
+
+;-------------------------------------------
 				
 ;-------------------------------------------
 PutNumUB
@@ -1147,6 +1303,7 @@ Queue 		SPACE Q_BUF_SZ
 QueueRecord SPACE Q_REC_SZ
 
 StringReversal		SPACE 2
+APSRState           SPACE 2
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
