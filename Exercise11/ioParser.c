@@ -119,9 +119,9 @@ int GetHexIntMulti (UInt32 *Number, int NumWords) {
 /*********************************************************************/
 void PutHexIntMulti (UInt32 *Number, int NumWords) {
     
-    int count = 0;
-	int numBytes = NumWords * 4;
-    char resultString[NUM_CHARS];
+  int count = 0;
+  int numBytes = NumWords * 4;
+  char resultString[NUM_CHARS];
 	unsigned int i;
 	
 	for(i = 0; i < numBytes; i++) {
@@ -135,15 +135,18 @@ void PutHexIntMulti (UInt32 *Number, int NumWords) {
 		int mostSigChar = (byteValue & mostSigByteMsk) >> 4;
 		
 		/* Convert characters to their appropriate ASCII format */ 
-        mostSigChar = convToAscii(mostSigChar);
-        leastSigChar = convToAscii(leastSigChar);
+    mostSigChar = convToAscii(mostSigChar);
+    leastSigChar = convToAscii(leastSigChar);
         
 		/* Rebuild the result string */
 		resultString[count] = mostSigChar;
-        count++;
+    count++;
 		resultString[count] = leastSigChar;
-        count++;
+    count++;
 	}
+	
+	/* Add a null terminator to the string before printing */
+	resultString[count] = 0;
 	
 	/*Print result string to the console. */
 	PutStringSB(resultString, MAX_STRING);
@@ -155,6 +158,7 @@ int main (void) {
     UInt128 num2;
     
     UInt128 resultAddress;
+	  int additionStatus;
     
     int result = 1;
     
@@ -162,6 +166,8 @@ int main (void) {
     
     Startup ();
     Init_UART0_IRQ ();
+	
+	  while(1 == 1) {
 	
     PutStringSB("Enter first 128 bit hex number:  0x", MAX_STRING);
     result = GetHexIntMulti(num1.Word, NUMBER_WORDS);
@@ -180,11 +186,20 @@ int main (void) {
     }
     
     /* Add some numbers together */
-    AddIntMultiU(resultAddress.Word, num1.Word, num2.Word, NUMBER_WORDS);
+    additionStatus = AddIntMultiU(resultAddress.Word, num1.Word, num2.Word, NUMBER_WORDS);
+		
+		PutStringSB("                                         Sum: 0x", MAX_STRING);
     
-    PutStringSB("\r\n", MAX_STRING);
-    PutHexIntMulti(resultAddress.Word, NUMBER_WORDS);
-    PutStringSB("All done!", MAX_STRING);
+		if(additionStatus == 0) {
+		  PutHexIntMulti(resultAddress.Word, NUMBER_WORDS);
+	  }
+		else {
+		  PutStringSB("OVERFLOW", MAX_STRING);	
+		}
+    
+		PutStringSB("\r\n", 2);
+		
+	  }
 	
     return (0);
 } 
