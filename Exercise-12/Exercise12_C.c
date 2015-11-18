@@ -281,8 +281,113 @@ void Init_DAC0() {
 * of single ended channed 23 (AD23). This is connected to the
 * output of DAC0 in ADC0->R[0]. 
 */
-void Init_ADC_0() {
+void Init_ADC0() {
+	/* Enable ACD0 module clock */
+	SIM->SCGC6 |= SIM_SCGC6_ADC0_MASK;
 	
+	/* Set ADC0 power and timing */
+	ADC0->CFG1 = ADC0_CFG1_LP_LONG_SGL10_3MHZ;
+	
+	/*Select Channel A and set timing */
+	ADC0->CFG2 = ADC0_CFG2_CHAN_A_NORMAL_LONG;
+	
+	/* Select SW Trigger and VDDA reference */
+	ADC0->SC2 = ADC0_SC2_SWTRIG_VDDA;
+	
+	/* Start calibration */
+	ADC0->SC3 = ADC0_SC3_CAL;
+	
+	/*Wait for calibration to be complete */
+	while (ADC0->SC3 & ADC_SC3_CAL_MASK) {
+		
+		/* Check for calibration failure */
+		/* Occurs when CALF flag is set on ADCO->SC3 */
+		if((ADC0->SC3 & 0x40) == 0x40) {
+			/* Calibration failure, handle appropriately*/
+			
+		}	
+		
+		/* Compute and store plus side calibration value */
+		UInt16 pluCalibVal = ADC0->CLP0 + ADC0->CLP1 + ADC0->CLP2 \
+		+ ADC0->CLP3 + ADC0->CLP4 + ADC0->CLPS;
+		
+		/* Split up the operation to make it more readable */
+		pluCalibVal = pluCalibVal >> 1;
+		pluCalibVal = pluCalibVal | 0x8000;
+		
+		/* ADC0_PG <- calibVal */
+		ADC0->PG = pluCalibVal;
+		
+	  /* Compute and store minus side calibration value */
+		UInt16 mnCalibVal = ADC0->CLM0 + ADC0->CLM1 + ADC0->CLM2 \
+		+ ADC0->CLM3 + ADC0->CLM4 + ADC0->CLMS;
+		
+		/* Split up the operation to make it more readable */
+		mnCalibVal = mnCalibVal >> 1;
+		mnCalibVal = mnCalibVal | 0x8000;
+		
+		/* ADC0_PG <- calibVal */
+		ADC0->PG = mnCalibVal;
+	}
+	
+	/* Post calibration Initalization. selecting single conversion */
+	ADC0->SC3 = ADC0_SC3_SINGLE;
+	
+}
+
+/*
+* Initalize the KL46 TPM0 to produce on channel 4 (TPM0_CH4)
+* a waveform with a 20ms period and a 2ms duty period. 
+*/
+void Init_TPM0() {
+  /* Enable TPM0 module clock */
+	SIM->SCGC6 |= SIM_SCGC6_TPM0_MASK;
+	
+	/* Enable port E module clock */
+	SIM->SCGC5 |= SIM_SCGC5_PORTE_MASK;
+	
+	/* Connect TPM0 channel 4 to port E pin 31 */
+	/* TODO: ENsure this is the correct #define to use */
+	PORTE->PCR[31] = SET_PTE31_TPM0_CH4_OUT;
+	
+	/* Set TPM clock source */
+	SIM->SOPT2 &= ~SIM_SOPT_TPMSRC_MASK;
+	SIM->SOPT2 |= SIM_SOPT2_TPM_MCGPLLCLK_DIV2;
+	
+	/* Set TPM0 configuration register to default values */
+	TPM0->CONF = TPM_CONF_DEFAULT;
+	
+	/* Set TPM0 counter modulo value */
+	TPM0->CNT = TPM_CNT_INIT;
+	TPM0->MOD = TPM_MOD_PWM_PERIOD_20ms;
+	
+	/* Set TPM0 channel 4 edge-aligned PWM */
+	TPM0->CONTROLS[4].CnSC = TPM_CnSC_PWMH;
+	
+	/* Set TPM0 channel 4 value */
+	TPM0->CONTROLS[4].CnV = TPM_CnV_PWM_DUTY_2ms;
+	
+	/* Set TPM0 counter clock configuration */
+	TPM0->SC = TPM_SC_CLK_DIV16;
+}
+
+/* Move the servo motor to point at the
+* given position that is printed out and affixed
+* to the servo motor enclosure.
+*
+* @param position - integer between 0 and 5 to indicate
+*  where the servo pointer should land.
+*/
+void moveServo(int position) {
+  /* Lookup table constructed in header file */
+  extern UInt16 PWM_duty_table_0;
+
+	/* Position to place the servo pointer */
+  int ServoPosition = position;
+	
+	/* Write to CnV with the appropriate value to move 
+	* servo position marker to appropriate position. */
+	TPM0->CONTROLS[4].CnV = PWM_duty_table[ServoPosition - 1];	
 }
 
 int main (void) {
@@ -296,6 +401,9 @@ int main (void) {
 	
 	/* Initalize the DACO module */
 	Init_DAC0();
+	
+	/* Initalize the TPM0 module */
+	Init_TPM0();
 	
 	/* Initalize the ADC0 module */
 	Init_ADC0();
