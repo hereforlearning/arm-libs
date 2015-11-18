@@ -352,7 +352,7 @@ void Init_TPM0() {
 	PORTE->PCR[31] = SET_PTE31_TPM0_CH4_OUT;
 	
 	/* Set TPM clock source */
-	SIM->SOPT2 &= ~SIM_SOPT_TPMSRC_MASK;
+	SIM->SOPT2 &= ~SIM_SOPT2_TPMSRC_MASK;
 	SIM->SOPT2 |= SIM_SOPT2_TPM_MCGPLLCLK_DIV2;
 	
 	/* Set TPM0 configuration register to default values */
