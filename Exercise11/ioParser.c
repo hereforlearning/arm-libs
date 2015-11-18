@@ -188,7 +188,8 @@ int main (void) {
     /* Add some numbers together */
     additionStatus = AddIntMultiU(resultAddress.Word, num1.Word, num2.Word, NUMBER_WORDS);
 		
-		PutStringSB("                                         Sum: 0x", MAX_STRING);
+		PutStringSB("\r\n", MAX_STRING);
+		PutStringSB("                            Sum: 0x", MAX_STRING);
     
 		if(additionStatus == 0) {
 		  PutHexIntMulti(resultAddress.Word, NUMBER_WORDS);
