@@ -230,15 +230,80 @@
 UInt16 *DAC0_table = &DAC0_table_0;
 UInt16 *PWM_duty_table = &PWM_duty_table_0;
 
+/*
+* Initalize the DAC0 component with an analog output 
+* of 0.81 mV from DAC0 that will be accessible through port E 
+* pin 30 connected to I/O Header J4 Pin 11.
+*
+* The total voltage vetween the min and max voltage specified
+* will be divided into 5 segments in order to drive a servo motor
+* with five different power intervals. 
+*/
+void Init_DAC0() {
+	
+	extern UInt16 DAC0_table_0;
+	UInt16 *DAC0_table = &DAC0_table_0;
+	
+	/*Enable TPM0 module clock */
+	SIM->SCGC6 |= SIM_SCGC6_DAC0_MASK;
+	
+	/*Enable port E module clock */
+	SIM->SCGC5 |= SIM_SCGC5_PORTE_MASK;
+	
+	/*Connect DAC0_OUT to Port E pin 30 (J4 Pin 11) */
+	PORTE->PCR[30] = SET_PTE30_DAC0_OUT;
+	
+	/* Set DAC0 DMA disabled and buffer disabled */
+	DAC0->C1 = DAC_C1_BUFFER_DISABLED;
+	
+	/* Set DAC0 enabled with VDDA as reference voltage. */
+	/* and read pointer interrupts disabled */
+	DAC0->C0 = DAC_C0_ENABLE;
+	
+	/* Set DAC0 output voltage at minimum value */
+	
+	/*
+	* TODO: Determine if these statements are required
+	* Or if they're overridden by the instructions below.
+	*
+	*DAC0->DAT[0].DATL = DAC_DATH_MIN;
+	*DAC0->DAT[0].DATH = DAC_DATL_MIN;
+	*/
+	
+	/*Set DAC0 output voltage to midpoint of segment two of voltage range */
+	DAC0->DAT[0].DATL = (UInt8) (DAC0_table[1] & 0xFF);
+	DAC0->DAT[0].DATH = (UInt8) (DAC0_table[1] >> 8);
+	
+}
+
+/*
+* Initalize and calibrate the KL46 ADC0 for polled conversion
+* of single ended channed 23 (AD23). This is connected to the
+* output of DAC0 in ADC0->R[0]. 
+*/
+void Init_ADC_0() {
+	
+}
+
 int main (void) {
 
-  __asm("CPSID   I");  /* mask interrupts */
+	/* mask interrupts */
+  __asm("CPSID   I");  
+	
   /* Perform all device initialization here */
   /* Before unmasking interrupts            */
   Init_UART0_IRQ ();
+	
+	/* Initalize the DACO module */
+	Init_DAC0();
+	
+	/* Initalize the ADC0 module */
+	Init_ADC0();
+	
   __asm("CPSIE   I");  /* unmask interrupts */
 
   for (;;) { /* do forever */
   } /* do forever */
 
 } /* main */
+
