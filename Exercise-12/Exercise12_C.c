@@ -282,6 +282,7 @@ void Init_DAC0() {
 * output of DAC0 in ADC0->R[0]. 
 */
 void Init_ADC0() {
+	
 	/* Enable ACD0 module clock */
 	SIM->SCGC6 |= SIM_SCGC6_ADC0_MASK;
 	
@@ -388,6 +389,26 @@ void moveServo(int position) {
 	/* Write to CnV with the appropriate value to move 
 	* servo position marker to appropriate position. */
 	TPM0->CONTROLS[4].CnV = PWM_duty_table[ServoPosition - 1];	
+}
+
+/* 
+* Using polling, begin an ADC conversion
+* and await it's completion synchronously. Return the
+* value once it's available.
+* 
+* @param analog - analog representation to convert
+* @return UInt16 - Digital representation of analog input
+*/
+UInt16 getADCConversion(UInt16 analog) {
+	/* Begin conversion */
+	ADC0->SC1[0] = analog;
+	
+	/* Wait for the conversion to complete. */
+	/* ADC0_SC1A COCO will become 1 when complete */
+	while(!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {}
+		
+	/* Read digital value after completion */
+	return ADC0->R[0];
 }
 
 int main (void) {
