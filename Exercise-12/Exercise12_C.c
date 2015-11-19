@@ -404,10 +404,10 @@ void moveServo(int position) {
 * @param analog - analog representation to convert
 * @return UInt16 - Digital representation of analog input
 */
-UInt16 getADCConversion(UInt16 analog) {
+UInt16 getADCConversion() {
 	
-	/* Begin conversion */
-	ADC0->SC1[0] = analog;
+	/* Begin conversion TODO: Does this actually work?*/
+	ADC0->SC1[0] = ADC0_SC1_SGL_DAC0;
 	
 	/* Wait for the conversion to complete. */
 	/* ADC0_SC1A COCO will become 1 when complete */
@@ -445,10 +445,29 @@ UInt16 writeToDAC0(int input) {
 	
 }
 
+/*
+* return an integer between 1 and 5 that represents the
+* position of the servo. Calculated from the digital
+* value read on the ADC0 as input.
+*
+* @param digitalVal - value between 0 and 4096 decimal
+* @return int calcPosition - number between 1 and 5
+*/
+int calcServoPosition(UInt16 digitalVal) {
+  
+	int maxVal = 1024;
+	int index;
+	
+	/* Calculate the index to use in the lookup table */
+	index = (digitalVal * 5) / maxVal;
+	
+	return index + 1;
+}
+
 int main (void) {
 	
 	char input;
-	UInt16 original;
+	UInt16 original, adcVal, servoPos;
 	
 	/* mask interrupts */
   __asm("CPSID   I");  
@@ -485,8 +504,25 @@ int main (void) {
 			
 		original = writeToDAC0(input);
 			
-		PutStringSB("Original digital value: ", MAX_STRING);
+		PutStringSB("Original digital value: 0x", MAX_STRING);
 		PutNumHex(original);
+			
+		adcVal = getADCConversion();
+			
+		PutStringSB("\r\nNew digital value:      0x", MAX_STRING);
+			
+		PutNumHex(adcVal);
+		
+		servoPos = calcServoPosition(adcVal);
+		
+		moveServo(servoPos);
+		
+		PutStringSB("\r\nServo position: ", MAX_STRING);
+		
+		PutChar(servoPos + '0');
+			
+		/* Print newline to the screen */
+		PutStringSB("\r\n", NEWLINE_BUFFER_LEN);
 		
   } /* do forever */
 
