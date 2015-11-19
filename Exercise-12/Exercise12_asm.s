@@ -204,6 +204,10 @@ NUM_ENQD				EQU 17
 PWM_PERIOD_20ms 		EQU 60000
 PWM_DUTY_5 				EQU 3000
 PWM_DUTY_10				EQU 6000
+	
+;DAC lookup table equates
+DAC0_STEPS				EQU 4096
+SERVO_POSITIONS			EQU	5
 
 ;****************************************************************
 ;Program
@@ -211,6 +215,7 @@ PWM_DUTY_10				EQU 6000
 			
 			;Exports and imports to interface with c code
 			EXPORT PWM_duty_table_0
+			EXPORT DAC0_table_0
 			
 			EXPORT GetStringSB
 			EXPORT PutStringSB
@@ -1216,6 +1221,9 @@ Out					DCB "Out= ", 0
 Num					DCB "Num= ", 0
 Spaces				DCB "   ", 0
 
+			ALIGN
+
+;Lookup table for pulse width modulation values
 PWM_duty_table_0
 					DCW PWM_DUTY_10											;100% Range
 					DCW ((3 * (PWM_DUTY_10 - PWM_DUTY_5)/4) + PWM_DUTY_5)	;75% Ramge
@@ -1223,6 +1231,18 @@ PWM_duty_table_0
 					DCW (((PWM_DUTY_10 - PWM_DUTY_5) / 4) + PWM_DUTY_5) 	;25% Range
 					DCW PWM_DUTY_5											;0% Range
 					
+			ALIGN
+
+;Lookup table for conversion from integer input to appropriate value
+DAC0_table_0
+					DCW ((DAC0_STEPS - 1) / (SERVO_POSITIONS * 2))
+					DCW (((DAC0_STEPS - 1) * 3) / (SERVO_POSITIONS * 2)) 
+					DCW (((DAC0_STEPS - 1) * 5) / (SERVO_POSITIONS * 2)) 
+					DCW (((DAC0_STEPS - 1) * 7) / (SERVO_POSITIONS * 2))
+					DCW (((DAC0_STEPS - 1) * 9) / (SERVO_POSITIONS * 2))
+
+
+
 ;>>>>>   end constants here <<<<<
             ALIGN
 ;****************************************************************
