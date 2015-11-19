@@ -227,6 +227,13 @@
 /* Servo */
 #define SERVO_POSITIONS  (5)
 
+/* For using GetStringSB with a buffer size of 1 */
+#define SINGLE_CHAR_INPUT (1)
+
+#define NEWLINE_BUFFER_LEN (3)
+
+#define INTEGER_ASCII_OFFSET (48)
+
 UInt16 *DAC0_table = &DAC0_table_0;
 UInt16 *PWM_duty_table = &PWM_duty_table_0;
 
@@ -242,7 +249,6 @@ UInt16 *PWM_duty_table = &PWM_duty_table_0;
 void Init_DAC0() {
 	
 	extern UInt16 DAC0_table_0;
-	UInt16 *DAC0_table = &DAC0_table_0;
 	
 	/*Enable TPM0 module clock */
 	SIM->SCGC6 |= SIM_SCGC6_DAC0_MASK;
@@ -269,10 +275,6 @@ void Init_DAC0() {
 	*DAC0->DAT[0].DATL = DAC_DATH_MIN;
 	*DAC0->DAT[0].DATH = DAC_DATL_MIN;
 	*/
-	
-	/*Set DAC0 output voltage to midpoint of segment two of voltage range */
-	DAC0->DAT[0].DATL = (UInt8) (DAC0_table[1] & 0xFF);
-	DAC0->DAT[0].DATH = (UInt8) (DAC0_table[1] >> 8);
 	
 }
 
@@ -403,6 +405,7 @@ void moveServo(int position) {
 * @return UInt16 - Digital representation of analog input
 */
 UInt16 getADCConversion(UInt16 analog) {
+	
 	/* Begin conversion */
 	ADC0->SC1[0] = analog;
 	
@@ -414,27 +417,77 @@ UInt16 getADCConversion(UInt16 analog) {
 	return ADC0->R[0];
 }
 
+/*
+* Fetch the correct DAC0 value from the predefined lookup table
+* using the character recieved as user input. This character 
+* is 1 indexed and will be subtracted by 1 to be zero indexed
+* to access lookup table elements.
+*
+* @param input - character between ASCII '1' and '5' to lookup DAC value
+* @return dacValue - original DAC digital signal value to be printed
+*/
+UInt16 writeToDAC0(int input) {
+	
+  int lookupTableIndex;
+  UInt16 dacValue;
+	
+	/* Use SINGLE_CHAR_INPUT to offset the 1 based values to 0 based array indices */
+  lookupTableIndex = input - INTEGER_ASCII_OFFSET - SINGLE_CHAR_INPUT;
+			
+  /* Access the appropriate value to send to the DAC */
+	dacValue = DAC0_table[lookupTableIndex];
+			
+	/*Set DAC0 output voltage to midpoint of segment two of voltage range */
+	DAC0->DAT[0].DATL = (UInt8) (dacValue & 0xFF);
+	DAC0->DAT[0].DATH = (UInt8) (dacValue >> 8);
+	
+	return dacValue;
+	
+}
+
 int main (void) {
+	
+	char input;
+	UInt16 original;
 	
 	/* mask interrupts */
   __asm("CPSID   I");  
 	
   /* Perform all device initialization here */
   /* Before unmasking interrupts            */
-  Init_UART0_IRQ ();
 	
 	/* Initalize the DACO module */
 	Init_DAC0();
 	
-	/* Initalize the TPM0 module */
-	Init_TPM0();
-	
 	/* Initalize the ADC0 module */
 	Init_ADC0();
+	
+	/* Fire up the UART */
+	Init_UART0_IRQ ();
+	
+	/* Initalize the TPM0 module */
+	Init_TPM0();
 	
   __asm("CPSIE   I");  /* unmask interrupts */
 
   for (;;) { /* do forever */
+		
+		PutStringSB("Type a number from 1 to 5: ", MAX_STRING);
+		
+		input = GetChar();
+		
+		while(input < '1' || input > '5') {}
+			
+		PutChar(input);
+		
+		/* Print newline to the screen */
+		PutStringSB("\r\n", NEWLINE_BUFFER_LEN);
+			
+		original = writeToDAC0(input);
+			
+		PutStringSB("Original digital value: ", MAX_STRING);
+		PutNumHex(original);
+		
   } /* do forever */
 
 } /* main */

@@ -368,1137 +368,1140 @@ ARM Macro Assembler    Page 6 Exercise 11 Multiprecision Arithmetic
   221 00000000                 EXPORT           PutStringSB
   222 00000000                 EXPORT           Init_UART0_IRQ
   223 00000000                 EXPORT           AddIntMultiU
-  224 00000000         
-  225 00000000         ;Interrupt request handlers
-  226 00000000                 EXPORT           UART0_IRQHandler
+  224 00000000                 EXPORT           GetChar
+  225 00000000                 EXPORT           PutChar
+  226 00000000                 EXPORT           PutNumHex
   227 00000000         
-  228 00000000         ;-------------------------------------------
-  229 00000000         AddIntMultiU
-  230 00000000         ;Add the n-word unsigned number in register R2 to 
-  231 00000000         ;the n-word unsigned numbe rin register R1. The result
-  232 00000000         ;is then stored in memory at address R0. The value locat
+  228 00000000         ;Interrupt request handlers
+  229 00000000                 EXPORT           UART0_IRQHandler
+  230 00000000         
+  231 00000000         ;-------------------------------------------
+  232 00000000         AddIntMultiU
+  233 00000000         ;Add the n-word unsigned number in register R2 to 
+  234 00000000         ;the n-word unsigned numbe rin register R1. The result
+  235 00000000         ;is then stored in memory at address R0. The value locat
                        ed
-  233 00000000         ;in R3 is the number of words of each number that will b
+  236 00000000         ;in R3 is the number of words of each number that will b
                        e added.
-  234 00000000         ;R0 is then overwritten with either a 0 for success or t
+  237 00000000         ;R0 is then overwritten with either a 0 for success or t
                        he 
-  235 00000000         ;value of 1 for failure (overflow)
-  236 00000000         
-  237 00000000         ;Load in values one word (register) at a time
-  238 00000000         ;And add using ADCS to utilize the state of the ASPR c 
-  239 00000000         ;bit when carrying operations over.
-  240 00000000         
+  238 00000000         ;value of 1 for failure (overflow)
+  239 00000000         
+  240 00000000         ;Load in values one word (register) at a time
 
 
 
 ARM Macro Assembler    Page 7 Exercise 11 Multiprecision Arithmetic
 
 
-  241 00000000         ;Inputs:
-  242 00000000         ;R0 = mem address to store result added number
-  243 00000000         ;R1 = mem address of number 1 to add
-  244 00000000         ;R2 = mem address of number 2 to add
-  245 00000000         ;R3 = size (number of words) that numbers in R1 and R2 c
+  241 00000000         ;And add using ADCS to utilize the state of the ASPR c 
+  242 00000000         ;bit when carrying operations over.
+  243 00000000         
+  244 00000000         ;Inputs:
+  245 00000000         ;R0 = mem address to store result added number
+  246 00000000         ;R1 = mem address of number 1 to add
+  247 00000000         ;R2 = mem address of number 2 to add
+  248 00000000         ;R3 = size (number of words) that numbers in R1 and R2 c
                        oorespond to
-  246 00000000         ;Outputs
-  247 00000000         ;R0 = Status value (0 for success and 1 for overflow)
-  248 00000000         ;-------------------------------------------
-  249 00000000 B5FE            PUSH             {R1-R7, LR}
-  250 00000002         
-  251 00000002 B403            PUSH             {R0-R1}
-  252 00000004         ;Initalize state of APSR C Flag
-  253 00000004 48D8            LDR              R0, =APSRState
-  254 00000006 2100            MOVS             R1, #0      ;
-  255 00000008 7001            STRB             R1, [R0, #0]
-  256 0000000A BC03            POP              {R0-R1}
-  257 0000000C         
-  258 0000000C         ;Initalize offset value
-  259 0000000C 2500            MOVS             R5, #0
-  260 0000000E         
-  261 0000000E         ADD_WORD
-  262 0000000E 2B00            CMP              R3, #0
-  263 00000010 D011            BEQ              ADD_COMPLETE
-  264 00000012         
-  265 00000012         ;Since memory values are little endian,
-  266 00000012         ;The least significant up to most significant
-  267 00000012         ;Words can just be loaded into registers one by one.
-  268 00000012 594E            LDR              R6, [R1, R5]
-  269 00000014 5957            LDR              R7, [R2, R5]
-  270 00000016         
-  271 00000016         ;Decrement word count
-  272 00000016 1E5B            SUBS             R3, R3, #1
-  273 00000018         
-  274 00000018         ;Increment offset to grab the next word from memory
-  275 00000018 1D2D            ADDS             R5, R5, #4
-  276 0000001A         
-  277 0000001A B420            PUSH             {R5}
-  278 0000001C         
-  279 0000001C         ;Get appropriate memory address to store to memory 
-  280 0000001C 1F2D            SUBS             R5, R5, #4
-  281 0000001E         
-  282 0000001E         ;Load state of APSR after last add.
-  283 0000001E F000 F81A       BL               SetAPSRState
-  284 00000022         
-  285 00000022         ;Add factoring in the carry value from previous op
-  286 00000022 417E            ADCS             R6, R6, R7
-  287 00000024         
-  288 00000024         ;Save state of APSR C after add
-  289 00000024 F000 F80C       BL               WriteAPSRC
-  290 00000028         
-  291 00000028         ;Write the result to the appropriate location in memory
-  292 00000028         ;(the same offset from where each input variable was rea
-                       d)
+  249 00000000         ;Outputs
+  250 00000000         ;R0 = Status value (0 for success and 1 for overflow)
+  251 00000000         ;-------------------------------------------
+  252 00000000 B5FE            PUSH             {R1-R7, LR}
+  253 00000002         
+  254 00000002 B403            PUSH             {R0-R1}
+  255 00000004         ;Initalize state of APSR C Flag
+  256 00000004 48D8            LDR              R0, =APSRState
+  257 00000006 2100            MOVS             R1, #0      ;
+  258 00000008 7001            STRB             R1, [R0, #0]
+  259 0000000A BC03            POP              {R0-R1}
+  260 0000000C         
+  261 0000000C         ;Initalize offset value
+  262 0000000C 2500            MOVS             R5, #0
+  263 0000000E         
+  264 0000000E         ADD_WORD
+  265 0000000E 2B00            CMP              R3, #0
+  266 00000010 D011            BEQ              ADD_COMPLETE
+  267 00000012         
+  268 00000012         ;Since memory values are little endian,
+  269 00000012         ;The least significant up to most significant
+  270 00000012         ;Words can just be loaded into registers one by one.
+  271 00000012 594E            LDR              R6, [R1, R5]
+  272 00000014 5957            LDR              R7, [R2, R5]
+  273 00000016         
+  274 00000016         ;Decrement word count
+  275 00000016 1E5B            SUBS             R3, R3, #1
+  276 00000018         
+  277 00000018         ;Increment offset to grab the next word from memory
+  278 00000018 1D2D            ADDS             R5, R5, #4
+  279 0000001A         
+  280 0000001A B420            PUSH             {R5}
+  281 0000001C         
+  282 0000001C         ;Get appropriate memory address to store to memory 
+  283 0000001C 1F2D            SUBS             R5, R5, #4
+  284 0000001E         
+  285 0000001E         ;Load state of APSR after last add.
+  286 0000001E F000 F81A       BL               SetAPSRState
+  287 00000022         
+  288 00000022         ;Add factoring in the carry value from previous op
+  289 00000022 417E            ADCS             R6, R6, R7
+  290 00000024         
+  291 00000024         ;Save state of APSR C after add
+  292 00000024 F000 F80C       BL               WriteAPSRC
   293 00000028         
-  294 00000028 5146            STR              R6, [R0,R5]
-  295 0000002A         
-  296 0000002A BC20            POP              {R5}
-  297 0000002C         
+  294 00000028         ;Write the result to the appropriate location in memory
+  295 00000028         ;(the same offset from where each input variable was rea
+                       d)
+  296 00000028         
+  297 00000028 5146            STR              R6, [R0,R5]
 
 
 
 ARM Macro Assembler    Page 8 Exercise 11 Multiprecision Arithmetic
 
 
-  298 0000002C         ;When carry is set from ADCS and we are on the
-  299 0000002C         ;Final word, we know overflow has occurred.
-  300 0000002C D200            BCS              CHECK_OVERFLOW
-  301 0000002E         
-  302 0000002E         ;Otherwise, just continue adding words
-  303 0000002E E7EE            B                ADD_WORD
-  304 00000030         
-  305 00000030         CHECK_OVERFLOW
-  306 00000030         ;We're in the middle of adding multiple words
-  307 00000030         ;Dont check for overflow until we hit the most significa
+  298 0000002A         
+  299 0000002A BC20            POP              {R5}
+  300 0000002C         
+  301 0000002C         ;When carry is set from ADCS and we are on the
+  302 0000002C         ;Final word, we know overflow has occurred.
+  303 0000002C D200            BCS              CHECK_OVERFLOW
+  304 0000002E         
+  305 0000002E         ;Otherwise, just continue adding words
+  306 0000002E E7EE            B                ADD_WORD
+  307 00000030         
+  308 00000030         CHECK_OVERFLOW
+  309 00000030         ;We're in the middle of adding multiple words
+  310 00000030         ;Dont check for overflow until we hit the most significa
                        nt
-  308 00000030 2B00            CMP              R3, #0
-  309 00000032 D1EC            BNE              ADD_WORD
-  310 00000034         
-  311 00000034         ;Else, signal that overflow has occured with n-word addi
+  311 00000030 2B00            CMP              R3, #0
+  312 00000032 D1EC            BNE              ADD_WORD
+  313 00000034         
+  314 00000034         ;Else, signal that overflow has occured with n-word addi
                        tion
-  312 00000034 2001            MOVS             R0, #1
-  313 00000036         
-  314 00000036         ADD_COMPLETE
-  315 00000036         ;If overflow bit has already been set,
-  316 00000036         ;Make sure that it is not cleared
-  317 00000036 2801            CMP              R0, #1
-  318 00000038 D100            BNE              SET_SUCCESS
-  319 0000003A E000            B                END_SUB
-  320 0000003C         
-  321 0000003C         SET_SUCCESS
-  322 0000003C         ;On successful operation, set R0 to 0
-  323 0000003C 2000            MOVS             R0, #0
-  324 0000003E         
-  325 0000003E         END_SUB
-  326 0000003E BDFE            POP              {R1-R7, PC}
-  327 00000040         
-  328 00000040         ;-------------------------------------------
-  329 00000040         WriteAPSRC
+  315 00000034 2001            MOVS             R0, #1
+  316 00000036         
+  317 00000036         ADD_COMPLETE
+  318 00000036         ;If overflow bit has already been set,
+  319 00000036         ;Make sure that it is not cleared
+  320 00000036 2801            CMP              R0, #1
+  321 00000038 D100            BNE              SET_SUCCESS
+  322 0000003A E000            B                END_SUB
+  323 0000003C         
+  324 0000003C         SET_SUCCESS
+  325 0000003C         ;On successful operation, set R0 to 0
+  326 0000003C 2000            MOVS             R0, #0
+  327 0000003E         
+  328 0000003E         END_SUB
+  329 0000003E BDFE            POP              {R1-R7, PC}
   330 00000040         
-  331 00000040 B407            PUSH             {R0-R2}
-  332 00000042         
-  333 00000042 F3EF 8000       MRS              R0, APSR
-  334 00000046 0F00            LSRS             R0, #28
-  335 00000048         
-  336 00000048 2102            MOVS             R1, #2
-  337 0000004A         
-  338 0000004A 4008            ANDS             R0, R0, R1
-  339 0000004C         
-  340 0000004C 0880            LSRS             R0, R0, #2
-  341 0000004E         
-  342 0000004E 49C6            LDR              R1, =APSRState
-  343 00000050 7008            STRB             R0, [R1, #0]
-  344 00000052         
-  345 00000052 BC07            POP              {R0-R2}
-  346 00000054         
-  347 00000054 4770            BX               LR
-  348 00000056         ;-------------------------------------------
-  349 00000056         
-  350 00000056         SetAPSRState
-  351 00000056         
-  352 00000056 B40F            PUSH             {R0-R3}
-  353 00000058         
-  354 00000058 48C3            LDR              R0, =APSRState
+  331 00000040         ;-------------------------------------------
+  332 00000040         WriteAPSRC
+  333 00000040         
+  334 00000040 B407            PUSH             {R0-R2}
+  335 00000042         
+  336 00000042 F3EF 8000       MRS              R0, APSR
+  337 00000046 0F00            LSRS             R0, #28
+  338 00000048         
+  339 00000048 2102            MOVS             R1, #2
+  340 0000004A         
+  341 0000004A 4008            ANDS             R0, R0, R1
+  342 0000004C         
+  343 0000004C 0880            LSRS             R0, R0, #2
+  344 0000004E         
+  345 0000004E 49C6            LDR              R1, =APSRState
+  346 00000050 7008            STRB             R0, [R1, #0]
+  347 00000052         
+  348 00000052 BC07            POP              {R0-R2}
+  349 00000054         
+  350 00000054 4770            BX               LR
+  351 00000056         ;-------------------------------------------
+  352 00000056         
+  353 00000056         SetAPSRState
+  354 00000056         
 
 
 
 ARM Macro Assembler    Page 9 Exercise 11 Multiprecision Arithmetic
 
 
-  355 0000005A 7800            LDRB             R0, [R0, #0]
-  356 0000005C         
-  357 0000005C 2800            CMP              R0, #0
-  358 0000005E         
-  359 0000005E D107            BNE              SET_C_APSR
-  360 00000060         
-  361 00000060         ;Clear C flag otherwise
-  362 00000060 F3EF 8200       MRS              R2, APSR
-  363 00000064 2320            MOVS             R3, #0x20
-  364 00000066 0612            LSLS             R2, R2, #24
-  365 00000068 439A            BICS             R2, R2, R3
-  366 0000006A F382 8800       MSR              APSR, R2
-  367 0000006E         
-  368 0000006E E006            B                END_SET_SUB
-  369 00000070         
-  370 00000070         SET_C_APSR
-  371 00000070 F3EF 8200       MRS              R2, APSR
-  372 00000074 2320            MOVS             R3, #0x20
-  373 00000076 061B            LSLS             R3, R3, #24
-  374 00000078 431A            ORRS             R2, R2, R3
-  375 0000007A F382 8800       MSR              APSR, R2
-  376 0000007E         
-  377 0000007E         END_SET_SUB
-  378 0000007E BC0F            POP              {R0 - R3}
-  379 00000080 4770            BX               LR
-  380 00000082         
-  381 00000082         
-  382 00000082         ;-------------------------------------------
-  383 00000082         PutNumUB
-  384 00000082         ;PutNumUB: Print the least significant unsigned 
-  385 00000082         ;byte value from R0 to the screen. 
-  386 00000082         
-  387 00000082         ;Inputs:
-  388 00000082         ;R0 = value to print to the terminal screen in UB form
-  389 00000082         ;Outputs
-  390 00000082         ;N/A
-  391 00000082         ;-------------------------------------------
-  392 00000082 B502            PUSH             {R1, LR}
-  393 00000084 21FF            MOVS             R1, #0xFF
-  394 00000086         
-  395 00000086         ;Mask off everything but the last byte
-  396 00000086 4008            ANDS             R0, R0, R1
-  397 00000088         
-  398 00000088 F000 F950       BL               PutNumU
-  399 0000008C         
-  400 0000008C BD02            POP              {R1, PC}
-  401 0000008E         
-  402 0000008E         ;-------------------------------------------
-  403 0000008E         ;UART0_ISR
-  404 0000008E         ;Interrupt service routine for UART0 
-  405 0000008E         ;Check status of interrupt that triggered the ISR
-  406 0000008E         ;And react appropriately. If transmit interrupt enabled,
+  355 00000056 B40F            PUSH             {R0-R3}
+  356 00000058         
+  357 00000058 48C3            LDR              R0, =APSRState
+  358 0000005A 7800            LDRB             R0, [R0, #0]
+  359 0000005C         
+  360 0000005C 2800            CMP              R0, #0
+  361 0000005E         
+  362 0000005E D107            BNE              SET_C_APSR
+  363 00000060         
+  364 00000060         ;Clear C flag otherwise
+  365 00000060 F3EF 8200       MRS              R2, APSR
+  366 00000064 2320            MOVS             R3, #0x20
+  367 00000066 0612            LSLS             R2, R2, #24
+  368 00000068 439A            BICS             R2, R2, R3
+  369 0000006A F382 8800       MSR              APSR, R2
+  370 0000006E         
+  371 0000006E E006            B                END_SET_SUB
+  372 00000070         
+  373 00000070         SET_C_APSR
+  374 00000070 F3EF 8200       MRS              R2, APSR
+  375 00000074 2320            MOVS             R3, #0x20
+  376 00000076 061B            LSLS             R3, R3, #24
+  377 00000078 431A            ORRS             R2, R2, R3
+  378 0000007A F382 8800       MSR              APSR, R2
+  379 0000007E         
+  380 0000007E         END_SET_SUB
+  381 0000007E BC0F            POP              {R0 - R3}
+  382 00000080 4770            BX               LR
+  383 00000082         
+  384 00000082         
+  385 00000082         ;-------------------------------------------
+  386 00000082         PutNumUB
+  387 00000082         ;PutNumUB: Print the least significant unsigned 
+  388 00000082         ;byte value from R0 to the screen. 
+  389 00000082         
+  390 00000082         ;Inputs:
+  391 00000082         ;R0 = value to print to the terminal screen in UB form
+  392 00000082         ;Outputs
+  393 00000082         ;N/A
+  394 00000082         ;-------------------------------------------
+  395 00000082 B502            PUSH             {R1, LR}
+  396 00000084 21FF            MOVS             R1, #0xFF
+  397 00000086         
+  398 00000086         ;Mask off everything but the last byte
+  399 00000086 4008            ANDS             R0, R0, R1
+  400 00000088         
+  401 00000088 F000 F950       BL               PutNumU
+  402 0000008C         
+  403 0000008C BD02            POP              {R1, PC}
+  404 0000008E         
+  405 0000008E         ;-------------------------------------------
+  406 0000008E         ;UART0_ISR
+  407 0000008E         ;Interrupt service routine for UART0 
+  408 0000008E         ;Check status of interrupt that triggered the ISR
+  409 0000008E         ;And react appropriately. If transmit interrupt enabled,
                        
-  407 0000008E         ;write to UART0 transmit data register. If rx enabled
-  408 0000008E         ;enqueue to transmit queue from UART0 recieve data regis
+  410 0000008E         ;write to UART0 transmit data register. If rx enabled
+  411 0000008E         ;enqueue to transmit queue from UART0 recieve data regis
                        ter
-  409 0000008E         ;-----------------------------------------
-  410 0000008E         UART0_IRQHandler
-  411 0000008E         
 
 
 
 ARM Macro Assembler    Page 10 Exercise 11 Multiprecision Arithmetic
 
 
-  412 0000008E         ;Mask other interrupts
-  413 0000008E B672            CPSID            I
-  414 00000090         ;Pust relevant registers on to the stack
-  415 00000090 B50F            PUSH             {LR, R0-R3}
-  416 00000092         
-  417 00000092 48B8            LDR              R0, =UART0_BASE
-  418 00000094         
-  419 00000094         ;If txinterrupt enabled (UART0_C2 Bit 7 is set)
-  420 00000094 78C1            LDRB             R1,[R0,#UART0_C2_OFFSET]
-  421 00000096 2280            MOVS             R2, #0x80
-  422 00000098         
-  423 00000098 4011            ANDS             R1, R1, R2
-  424 0000009A         
-  425 0000009A 2900            CMP              R1, #0
-  426 0000009C D100            BNE              TX_ENABLED
-  427 0000009E         
-  428 0000009E         ;If no TxInterrupt, check for Rx
-  429 0000009E E00F            B                CHECK_RX_INT
-  430 000000A0         
-  431 000000A0         TX_ENABLED
-  432 000000A0         
-  433 000000A0 7901            LDRB             R1,[R0,#UART0_S1_OFFSET]
-  434 000000A2 2280            MOVS             R2, #0x80
-  435 000000A4         
-  436 000000A4 4011            ANDS             R1, R1, R2
-  437 000000A6 2900            CMP              R1, #0
-  438 000000A8 D00A            BEQ              CHECK_RX_INT
-  439 000000AA         
-  440 000000AA         ;Dequeue character
-  441 000000AA         ;Load input params to initalize queue structure
-  442 000000AA 49B0            LDR              R1, =TxQueueRecord
-  443 000000AC 2204            MOVS             R2, #Q_BUF_SZ
-  444 000000AE         
-  445 000000AE F000 F834       BL               DeQueue
-  446 000000B2         
-  447 000000B2         ;Dequeue was unsuccessful
-  448 000000B2 D202            BCS              DISABLE_TX
-  449 000000B4         
-  450 000000B4         ;Dequeue was successful
-  451 000000B4 49AF            LDR              R1, =UART0_BASE
-  452 000000B6         
-  453 000000B6         ;Transmit Character Stored in R0
-  454 000000B6 71C8            STRB             R0, [R1, #UART0_D_OFFSET]
-  455 000000B8         
-  456 000000B8 E00E            B                END_ISR
-  457 000000BA         
-  458 000000BA         DISABLE_TX
-  459 000000BA         ;UART0 <- C2_T_RI
-  460 000000BA 212C            MOVS             R1,#UART0_C2_T_RI
-  461 000000BC 70C1            STRB             R1,[R0,#UART0_C2_OFFSET]
-  462 000000BE         
-  463 000000BE         ;Pop values and return
-  464 000000BE E00B            B                END_ISR
-  465 000000C0         
-  466 000000C0         CHECK_RX_INT
-  467 000000C0 48AC            LDR              R0, =UART0_BASE
-  468 000000C2         
-  469 000000C2         ;Check if an RxInterrupt exists
-  470 000000C2 7901            LDRB             R1,[R0,#UART0_S1_OFFSET]
+  412 0000008E         ;-----------------------------------------
+  413 0000008E         UART0_IRQHandler
+  414 0000008E         
+  415 0000008E         ;Mask other interrupts
+  416 0000008E B672            CPSID            I
+  417 00000090         ;Pust relevant registers on to the stack
+  418 00000090 B50F            PUSH             {LR, R0-R3}
+  419 00000092         
+  420 00000092 48B8            LDR              R0, =UART0_BASE
+  421 00000094         
+  422 00000094         ;If txinterrupt enabled (UART0_C2 Bit 7 is set)
+  423 00000094 78C1            LDRB             R1,[R0,#UART0_C2_OFFSET]
+  424 00000096 2280            MOVS             R2, #0x80
+  425 00000098         
+  426 00000098 4011            ANDS             R1, R1, R2
+  427 0000009A         
+  428 0000009A 2900            CMP              R1, #0
+  429 0000009C D100            BNE              TX_ENABLED
+  430 0000009E         
+  431 0000009E         ;If no TxInterrupt, check for Rx
+  432 0000009E E00F            B                CHECK_RX_INT
+  433 000000A0         
+  434 000000A0         TX_ENABLED
+  435 000000A0         
+  436 000000A0 7901            LDRB             R1,[R0,#UART0_S1_OFFSET]
+  437 000000A2 2280            MOVS             R2, #0x80
+  438 000000A4         
+  439 000000A4 4011            ANDS             R1, R1, R2
+  440 000000A6 2900            CMP              R1, #0
+  441 000000A8 D00A            BEQ              CHECK_RX_INT
+  442 000000AA         
+  443 000000AA         ;Dequeue character
+  444 000000AA         ;Load input params to initalize queue structure
+  445 000000AA 49B0            LDR              R1, =TxQueueRecord
+  446 000000AC 2204            MOVS             R2, #Q_BUF_SZ
+  447 000000AE         
+  448 000000AE F000 F834       BL               DeQueue
+  449 000000B2         
+  450 000000B2         ;Dequeue was unsuccessful
+  451 000000B2 D202            BCS              DISABLE_TX
+  452 000000B4         
+  453 000000B4         ;Dequeue was successful
+  454 000000B4 49AF            LDR              R1, =UART0_BASE
+  455 000000B6         
+  456 000000B6         ;Transmit Character Stored in R0
+  457 000000B6 71C8            STRB             R0, [R1, #UART0_D_OFFSET]
+  458 000000B8         
+  459 000000B8 E00E            B                END_ISR
+  460 000000BA         
+  461 000000BA         DISABLE_TX
+  462 000000BA         ;UART0 <- C2_T_RI
+  463 000000BA 212C            MOVS             R1,#UART0_C2_T_RI
+  464 000000BC 70C1            STRB             R1,[R0,#UART0_C2_OFFSET]
+  465 000000BE         
+  466 000000BE         ;Pop values and return
+  467 000000BE E00B            B                END_ISR
+  468 000000C0         
+  469 000000C0         CHECK_RX_INT
+  470 000000C0 48AC            LDR              R0, =UART0_BASE
 
 
 
 ARM Macro Assembler    Page 11 Exercise 11 Multiprecision Arithmetic
 
 
-  471 000000C4 2210            MOVS             R2, #0x10
-  472 000000C6         
-  473 000000C6 4011            ANDS             R1, R1, R2
-  474 000000C8 2900            CMP              R1, #0
-  475 000000CA D005            BEQ              END_ISR
-  476 000000CC         
-  477 000000CC         ;Receive character and store in R0
-  478 000000CC 48A9            LDR              R0, =UART0_BASE
-  479 000000CE 79C3            LDRB             R3, [R0, #UART0_D_OFFSET]
-  480 000000D0         
-  481 000000D0         ;Enqueue character with character stored in R0
-  482 000000D0         ;Load input params to initalize queue structure
-  483 000000D0 49A7            LDR              R1, =RxQueueRecord
-  484 000000D2 0018            MOVS             R0, R3
-  485 000000D4         
-  486 000000D4 F000 F844       BL               EnQueue
-  487 000000D8         
-  488 000000D8         ;No need to check return of EnQueue
-  489 000000D8         ;character will be lost if the queue is full!
+  471 000000C2         
+  472 000000C2         ;Check if an RxInterrupt exists
+  473 000000C2 7901            LDRB             R1,[R0,#UART0_S1_OFFSET]
+  474 000000C4 2210            MOVS             R2, #0x10
+  475 000000C6         
+  476 000000C6 4011            ANDS             R1, R1, R2
+  477 000000C8 2900            CMP              R1, #0
+  478 000000CA D005            BEQ              END_ISR
+  479 000000CC         
+  480 000000CC         ;Receive character and store in R0
+  481 000000CC 48A9            LDR              R0, =UART0_BASE
+  482 000000CE 79C3            LDRB             R3, [R0, #UART0_D_OFFSET]
+  483 000000D0         
+  484 000000D0         ;Enqueue character with character stored in R0
+  485 000000D0         ;Load input params to initalize queue structure
+  486 000000D0 49A7            LDR              R1, =RxQueueRecord
+  487 000000D2 0018            MOVS             R0, R3
+  488 000000D4         
+  489 000000D4 F000 F844       BL               EnQueue
   490 000000D8         
-  491 000000D8         END_ISR
-  492 000000D8         ;pop relevant registers off the stack
+  491 000000D8         ;No need to check return of EnQueue
+  492 000000D8         ;character will be lost if the queue is full!
   493 000000D8         
-  494 000000D8         ;Unmask other interrupts
-  495 000000D8 B662            CPSIE            I
-  496 000000DA         
-  497 000000DA         ;Return back to our business
-  498 000000DA BD0F            POP              {R0-R3, PC}
-  499 000000DC         
-  500 000000DC         ;--------------------------------------------
-  501 000000DC         PutNumHex
-  502 000000DC         ;PutNumHex: Print hex representation of a value
-  503 000000DC         ;To the console. Separates each nibble via masking
-  504 000000DC         ;And then converts to appropriate ASCII representation
-  505 000000DC         ;Inputs:
-  506 000000DC         ;R0 - Value to print to the screen
-  507 000000DC         ;Outputs: N/A
-  508 000000DC         ;--------------------------------------------
-  509 000000DC B51C            PUSH             {R2, R3, R4, LR}
-  510 000000DE         
-  511 000000DE 2220            MOVS             R2, #32
-  512 000000E0         
-  513 000000E0         HEX_PRINT_LOOP
-  514 000000E0         
-  515 000000E0         ;Iterate 8 times for each digit stored in a register
-  516 000000E0 2A00            CMP              R2, #0
-  517 000000E2 DB10            BLT              END_PRINT_HEX
-  518 000000E4         
-  519 000000E4         ;Shift current nibble to print to
-  520 000000E4         ;the rightmost value of register
-  521 000000E4 0003            MOVS             R3, R0
-  522 000000E6 240F            MOVS             R4, #0x0F
-  523 000000E8 40D3            LSRS             R3, R2
-  524 000000EA         
-  525 000000EA 401C            ANDS             R4, R4, R3
-  526 000000EC         
-  527 000000EC         ;Convert to appropriate ASCII value
-  528 000000EC 2C0A            CMP              R4, #10
-  529 000000EE DA01            BGE              PRINT_LETTER
+  494 000000D8         END_ISR
+  495 000000D8         ;pop relevant registers off the stack
+  496 000000D8         
+  497 000000D8         ;Unmask other interrupts
+  498 000000D8 B662            CPSIE            I
+  499 000000DA         
+  500 000000DA         ;Return back to our business
+  501 000000DA BD0F            POP              {R0-R3, PC}
+  502 000000DC         
+  503 000000DC         ;--------------------------------------------
+  504 000000DC         PutNumHex
+  505 000000DC         ;PutNumHex: Print hex representation of a value
+  506 000000DC         ;To the console. Separates each nibble via masking
+  507 000000DC         ;And then converts to appropriate ASCII representation
+  508 000000DC         ;Inputs:
+  509 000000DC         ;R0 - Value to print to the screen
+  510 000000DC         ;Outputs: N/A
+  511 000000DC         ;--------------------------------------------
+  512 000000DC B51C            PUSH             {R2, R3, R4, LR}
+  513 000000DE         
+  514 000000DE 2220            MOVS             R2, #32
+  515 000000E0         
+  516 000000E0         HEX_PRINT_LOOP
+  517 000000E0         
+  518 000000E0         ;Iterate 8 times for each digit stored in a register
+  519 000000E0 2A00            CMP              R2, #0
+  520 000000E2 DB10            BLT              END_PRINT_HEX
+  521 000000E4         
+  522 000000E4         ;Shift current nibble to print to
+  523 000000E4         ;the rightmost value of register
+  524 000000E4 0003            MOVS             R3, R0
+  525 000000E6 240F            MOVS             R4, #0x0F
+  526 000000E8 40D3            LSRS             R3, R2
+  527 000000EA         
+  528 000000EA 401C            ANDS             R4, R4, R3
+  529 000000EC         
 
 
 
 ARM Macro Assembler    Page 12 Exercise 11 Multiprecision Arithmetic
 
 
-  530 000000F0         
-  531 000000F0         ;If 0-9 should be printed, add ASCII '0' val
-  532 000000F0 3430            ADDS             R4, #'0'
-  533 000000F2 E000            B                PRINT_HX
-  534 000000F4         
-  535 000000F4         PRINT_LETTER
-  536 000000F4         
-  537 000000F4         ;If A-F should be printed, Add ASCII '55'
-  538 000000F4         ;To convert to capital letter value
-  539 000000F4 3437            ADDS             R4, R4, #55
-  540 000000F6         
-  541 000000F6         PRINT_HX
-  542 000000F6         ;Print ASCII value to the screen
-  543 000000F6         ;Make sure not to destroy vlue in R0!
-  544 000000F6 B401            PUSH             {R0}
-  545 000000F8 0020            MOVS             R0, R4
-  546 000000FA F000 F85D       BL               PutChar
-  547 000000FE BC01            POP              {R0}
-  548 00000100         
-  549 00000100         ;Reset value in R3 and increment loop counter
-  550 00000100 2400            MOVS             R4, #0
-  551 00000102 1F12            SUBS             R2, R2, #4
-  552 00000104 E7EC            B                HEX_PRINT_LOOP
-  553 00000106         
-  554 00000106         END_PRINT_HEX
-  555 00000106         
-  556 00000106 BD1C            POP              {R2, R3, R4, PC}
-  557 00000108         ;--------------------------------------------
-  558 00000108         
-  559 00000108         InitQueue
-  560 00000108         ;InitQueue: Initalize Circular FIFO Queue Structure
-  561 00000108         ;Inputs:
-  562 00000108         ;R0 - Memory location of queue buffer
-  563 00000108         ;R1 - Address to place Queue record structure
-  564 00000108         ;R2 - Size of queue structure (character capacity)
-  565 00000108         ;Outputs: N/A
-  566 00000108         ;--------------------------------------------
-  567 00000108         
-  568 00000108         ;Store memory address of front of queue
-  569 00000108         ;Into IN_PTR position of the buffer
-  570 00000108 6008            STR              R0, [R1, #IN_PTR]
-  571 0000010A         
-  572 0000010A         ;Store same memory address for OUT_PTR
-  573 0000010A         ;position in the buffer since queue is empty
-  574 0000010A 6048            STR              R0, [R1, #OUT_PTR]
-  575 0000010C         
-  576 0000010C         ;Store same memory address in BUF_START for initalizatio
+  530 000000EC         ;Convert to appropriate ASCII value
+  531 000000EC 2C0A            CMP              R4, #10
+  532 000000EE DA01            BGE              PRINT_LETTER
+  533 000000F0         
+  534 000000F0         ;If 0-9 should be printed, add ASCII '0' val
+  535 000000F0 3430            ADDS             R4, #'0'
+  536 000000F2 E000            B                PRINT_HX
+  537 000000F4         
+  538 000000F4         PRINT_LETTER
+  539 000000F4         
+  540 000000F4         ;If A-F should be printed, Add ASCII '55'
+  541 000000F4         ;To convert to capital letter value
+  542 000000F4 3437            ADDS             R4, R4, #55
+  543 000000F6         
+  544 000000F6         PRINT_HX
+  545 000000F6         ;Print ASCII value to the screen
+  546 000000F6         ;Make sure not to destroy vlue in R0!
+  547 000000F6 B401            PUSH             {R0}
+  548 000000F8 0020            MOVS             R0, R4
+  549 000000FA F7FF FFFE       BL               PutChar
+  550 000000FE BC01            POP              {R0}
+  551 00000100         
+  552 00000100         ;Reset value in R3 and increment loop counter
+  553 00000100 2400            MOVS             R4, #0
+  554 00000102 1F12            SUBS             R2, R2, #4
+  555 00000104 E7EC            B                HEX_PRINT_LOOP
+  556 00000106         
+  557 00000106         END_PRINT_HEX
+  558 00000106         
+  559 00000106 BD1C            POP              {R2, R3, R4, PC}
+  560 00000108         ;--------------------------------------------
+  561 00000108         
+  562 00000108         InitQueue
+  563 00000108         ;InitQueue: Initalize Circular FIFO Queue Structure
+  564 00000108         ;Inputs:
+  565 00000108         ;R0 - Memory location of queue buffer
+  566 00000108         ;R1 - Address to place Queue record structure
+  567 00000108         ;R2 - Size of queue structure (character capacity)
+  568 00000108         ;Outputs: N/A
+  569 00000108         ;--------------------------------------------
+  570 00000108         
+  571 00000108         ;Store memory address of front of queue
+  572 00000108         ;Into IN_PTR position of the buffer
+  573 00000108 6008            STR              R0, [R1, #IN_PTR]
+  574 0000010A         
+  575 0000010A         ;Store same memory address for OUT_PTR
+  576 0000010A         ;position in the buffer since queue is empty
+  577 0000010A 6048            STR              R0, [R1, #OUT_PTR]
+  578 0000010C         
+  579 0000010C         ;Store same memory address in BUF_START for initalizatio
                        n
-  577 0000010C 6088            STR              R0, [R1, #BUF_START]
-  578 0000010E         
-  579 0000010E         ;Store BUF_PAST in last slot of buffer
-  580 0000010E 1880            ADDS             R0, R0, R2
-  581 00000110 60C8            STR              R0, [R1, #BUF_PAST]
-  582 00000112         
-  583 00000112         ;Store BUF_SIZE with size in R2
-  584 00000112 610A            STR              R2, [R1, #BUF_SIZE]
-  585 00000114         
-  586 00000114         ;Initalize NUM_ENQD to zero and 
-  587 00000114         ;store in 6th slot of buffer
+  580 0000010C 6088            STR              R0, [R1, #BUF_START]
+  581 0000010E         
+  582 0000010E         ;Store BUF_PAST in last slot of buffer
+  583 0000010E 1880            ADDS             R0, R0, R2
+  584 00000110 60C8            STR              R0, [R1, #BUF_PAST]
+  585 00000112         
+  586 00000112         ;Store BUF_SIZE with size in R2
+  587 00000112 610A            STR              R2, [R1, #BUF_SIZE]
 
 
 
 ARM Macro Assembler    Page 13 Exercise 11 Multiprecision Arithmetic
 
 
-  588 00000114 2000            MOVS             R0, #0
-  589 00000116 7448            STRB             R0, [R1, #NUM_ENQD]
-  590 00000118         
-  591 00000118 4770            BX               LR
-  592 0000011A         
-  593 0000011A         ;--------------------------------------------
-  594 0000011A         
-  595 0000011A         DeQueue
-  596 0000011A         ;DeQueue: Remove an element from the circular FIFO Queue
+  588 00000114         
+  589 00000114         ;Initalize NUM_ENQD to zero and 
+  590 00000114         ;store in 6th slot of buffer
+  591 00000114 2000            MOVS             R0, #0
+  592 00000116 7448            STRB             R0, [R1, #NUM_ENQD]
+  593 00000118         
+  594 00000118 4770            BX               LR
+  595 0000011A         
+  596 0000011A         ;--------------------------------------------
+  597 0000011A         
+  598 0000011A         DeQueue
+  599 0000011A         ;DeQueue: Remove an element from the circular FIFO Queue
                        
-  597 0000011A         ;Inputs:
-  598 0000011A         ;R1 - Address of Queue record structure
-  599 0000011A         ;Outputs:
-  600 0000011A         ;R0 - Character that has been dequeued
-  601 0000011A         ;PSR C flag (failure if C = 1, C = 0 otherwise.)
-  602 0000011A         ;--------------------------------------------
-  603 0000011A B41E            PUSH             {R1, R2, R3, R4}
-  604 0000011C         
-  605 0000011C         ;If the number enqueued is 0, 
-  606 0000011C         ;Set failure PSR flag
-  607 0000011C 7C4B            LDRB             R3, [R1, #NUM_ENQD]
-  608 0000011E 2B00            CMP              R3, #0
-  609 00000120 DD15            BLE              DEQUEUE_FAILURE
-  610 00000122         
-  611 00000122         ;Remove the item from the queue
-  612 00000122         ;And place in R0
-  613 00000122 6848            LDR              R0, [R1, #OUT_PTR]
-  614 00000124         
-  615 00000124         ;Load actual queue value into R0
-  616 00000124 7800            LDRB             R0, [R0, #0]
-  617 00000126         
-  618 00000126         ;Decrement number of enqueued elements
-  619 00000126         ;And store info back in buffer
-  620 00000126 7C4B            LDRB             R3, [R1, #NUM_ENQD]
-  621 00000128 1E5B            SUBS             R3, R3, #1
-  622 0000012A 744B            STRB             R3, [R1, #NUM_ENQD]
-  623 0000012C         
-  624 0000012C         ;Increment location of out_pointer
-  625 0000012C 684B            LDR              R3, [R1, #OUT_PTR]
-  626 0000012E 1C5B            ADDS             R3, R3, #1
-  627 00000130 604B            STR              R3, [R1, #OUT_PTR]
-  628 00000132         
-  629 00000132         ;Compare OUT_PTR to BUF_PAST
-  630 00000132         ;If out_ptr >= BUF_PAST, wrap the queue around
-  631 00000132 68CC            LDR              R4, [R1, #BUF_PAST]
-  632 00000134 42A3            CMP              R3, R4
-  633 00000136 DA00            BGE              WRAP_BUFFER
-  634 00000138 E001            B                DEQUEUE_CLEAR_PSR
-  635 0000013A         
-  636 0000013A         WRAP_BUFFER
-  637 0000013A         ;Adjust out_ptr to equal buf_start
-  638 0000013A         ;Thus wrapping around the circular queue
-  639 0000013A 688B            LDR              R3, [R1, #BUF_START]
-  640 0000013C 604B            STR              R3, [R1, #OUT_PTR]
-  641 0000013E         
-  642 0000013E         DEQUEUE_CLEAR_PSR
-  643 0000013E         ;Clear the PSR C flag
-  644 0000013E F3EF 8100       MRS              R1, APSR
-  645 00000142 2320            MOVS             R3, #0x20
+  600 0000011A         ;Inputs:
+  601 0000011A         ;R1 - Address of Queue record structure
+  602 0000011A         ;Outputs:
+  603 0000011A         ;R0 - Character that has been dequeued
+  604 0000011A         ;PSR C flag (failure if C = 1, C = 0 otherwise.)
+  605 0000011A         ;--------------------------------------------
+  606 0000011A B41E            PUSH             {R1, R2, R3, R4}
+  607 0000011C         
+  608 0000011C         ;If the number enqueued is 0, 
+  609 0000011C         ;Set failure PSR flag
+  610 0000011C 7C4B            LDRB             R3, [R1, #NUM_ENQD]
+  611 0000011E 2B00            CMP              R3, #0
+  612 00000120 DD15            BLE              DEQUEUE_FAILURE
+  613 00000122         
+  614 00000122         ;Remove the item from the queue
+  615 00000122         ;And place in R0
+  616 00000122 6848            LDR              R0, [R1, #OUT_PTR]
+  617 00000124         
+  618 00000124         ;Load actual queue value into R0
+  619 00000124 7800            LDRB             R0, [R0, #0]
+  620 00000126         
+  621 00000126         ;Decrement number of enqueued elements
+  622 00000126         ;And store info back in buffer
+  623 00000126 7C4B            LDRB             R3, [R1, #NUM_ENQD]
+  624 00000128 1E5B            SUBS             R3, R3, #1
+  625 0000012A 744B            STRB             R3, [R1, #NUM_ENQD]
+  626 0000012C         
+  627 0000012C         ;Increment location of out_pointer
+  628 0000012C 684B            LDR              R3, [R1, #OUT_PTR]
+  629 0000012E 1C5B            ADDS             R3, R3, #1
+  630 00000130 604B            STR              R3, [R1, #OUT_PTR]
+  631 00000132         
+  632 00000132         ;Compare OUT_PTR to BUF_PAST
+  633 00000132         ;If out_ptr >= BUF_PAST, wrap the queue around
+  634 00000132 68CC            LDR              R4, [R1, #BUF_PAST]
+  635 00000134 42A3            CMP              R3, R4
+  636 00000136 DA00            BGE              WRAP_BUFFER
+  637 00000138 E001            B                DEQUEUE_CLEAR_PSR
+  638 0000013A         
+  639 0000013A         WRAP_BUFFER
+  640 0000013A         ;Adjust out_ptr to equal buf_start
+  641 0000013A         ;Thus wrapping around the circular queue
+  642 0000013A 688B            LDR              R3, [R1, #BUF_START]
+  643 0000013C 604B            STR              R3, [R1, #OUT_PTR]
+  644 0000013E         
+  645 0000013E         DEQUEUE_CLEAR_PSR
 
 
 
 ARM Macro Assembler    Page 14 Exercise 11 Multiprecision Arithmetic
 
 
-  646 00000144 0609            LSLS             R1, R1, #24
-  647 00000146 4399            BICS             R1, R1, R3
-  648 00000148 F381 8800       MSR              APSR, R1
-  649 0000014C         
-  650 0000014C         ;Successfully end the operation
-  651 0000014C E006            B                END_DEQUEUE
-  652 0000014E         
-  653 0000014E         DEQUEUE_FAILURE
-  654 0000014E         ;Set PSR C flag to 1
-  655 0000014E F3EF 8100       MRS              R1, APSR
-  656 00000152 2320            MOVS             R3, #0x20
-  657 00000154 061B            LSLS             R3, R3, #24
-  658 00000156 4319            ORRS             R1, R1, R3
-  659 00000158 F381 8800       MSR              APSR, R1
-  660 0000015C         
-  661 0000015C         END_DEQUEUE
-  662 0000015C BC1E            POP              {R1, R2, R3, R4}
-  663 0000015E 4770            BX               LR
-  664 00000160         
-  665 00000160         ;--------------------------------------------
-  666 00000160         EnQueue
-  667 00000160         ;EnQueue: Add an element to the circular FIFO Queue
-  668 00000160         ;Inputs:
-  669 00000160         ;R0 - Character to enqueue
-  670 00000160         ;R1 - Address of the Queue record
-  671 00000160         ;Outputs:
-  672 00000160         ;PSR C flag (failure if C = 1, C = 0 otherwise.)
-  673 00000160         ;--------------------------------------------'
-  674 00000160         
-  675 00000160 B41C            PUSH             {R2, R3, R4}
-  676 00000162         
-  677 00000162         ;If num_enqd >= size of the queue
-  678 00000162         ;Then set PSR C flag to 1 indicating
-  679 00000162         ;the error that an element was not inserted
-  680 00000162         ;into a full queue
-  681 00000162         
-  682 00000162 7C4B            LDRB             R3, [R1, #NUM_ENQD]
-  683 00000164 7C0C            LDRB             R4, [R1, #BUF_SIZE]
-  684 00000166 42A3            CMP              R3, R4
-  685 00000168 DA00            BGE              QUEUE_FULL
-  686 0000016A E007            B                BEGIN_ENQUEUE
-  687 0000016C         
-  688 0000016C         QUEUE_FULL
-  689 0000016C         ;Set PSR C flag to 1
-  690 0000016C F3EF 8100       MRS              R1, APSR
-  691 00000170 2320            MOVS             R3, #0x20
-  692 00000172 061B            LSLS             R3, R3, #24
-  693 00000174 4319            ORRS             R1, R1, R3
-  694 00000176 F381 8800       MSR              APSR, R1
-  695 0000017A E01B            B                END_ENQUEUE
-  696 0000017C         
-  697 0000017C         BEGIN_ENQUEUE
-  698 0000017C         
-  699 0000017C         ;Load mem address of in_ptr
-  700 0000017C         ;and then store the value to be enqueued
-  701 0000017C         ;intot he value at that memory address
-  702 0000017C 680B            LDR              R3, [R1, #IN_PTR]
-  703 0000017E 7018            STRB             R0, [R3, #0]
-  704 00000180         
+  646 0000013E         ;Clear the PSR C flag
+  647 0000013E F3EF 8100       MRS              R1, APSR
+  648 00000142 2320            MOVS             R3, #0x20
+  649 00000144 0609            LSLS             R1, R1, #24
+  650 00000146 4399            BICS             R1, R1, R3
+  651 00000148 F381 8800       MSR              APSR, R1
+  652 0000014C         
+  653 0000014C         ;Successfully end the operation
+  654 0000014C E006            B                END_DEQUEUE
+  655 0000014E         
+  656 0000014E         DEQUEUE_FAILURE
+  657 0000014E         ;Set PSR C flag to 1
+  658 0000014E F3EF 8100       MRS              R1, APSR
+  659 00000152 2320            MOVS             R3, #0x20
+  660 00000154 061B            LSLS             R3, R3, #24
+  661 00000156 4319            ORRS             R1, R1, R3
+  662 00000158 F381 8800       MSR              APSR, R1
+  663 0000015C         
+  664 0000015C         END_DEQUEUE
+  665 0000015C BC1E            POP              {R1, R2, R3, R4}
+  666 0000015E 4770            BX               LR
+  667 00000160         
+  668 00000160         ;--------------------------------------------
+  669 00000160         EnQueue
+  670 00000160         ;EnQueue: Add an element to the circular FIFO Queue
+  671 00000160         ;Inputs:
+  672 00000160         ;R0 - Character to enqueue
+  673 00000160         ;R1 - Address of the Queue record
+  674 00000160         ;Outputs:
+  675 00000160         ;PSR C flag (failure if C = 1, C = 0 otherwise.)
+  676 00000160         ;--------------------------------------------'
+  677 00000160         
+  678 00000160 B41C            PUSH             {R2, R3, R4}
+  679 00000162         
+  680 00000162         ;If num_enqd >= size of the queue
+  681 00000162         ;Then set PSR C flag to 1 indicating
+  682 00000162         ;the error that an element was not inserted
+  683 00000162         ;into a full queue
+  684 00000162         
+  685 00000162 7C4B            LDRB             R3, [R1, #NUM_ENQD]
+  686 00000164 7C0C            LDRB             R4, [R1, #BUF_SIZE]
+  687 00000166 42A3            CMP              R3, R4
+  688 00000168 DA00            BGE              QUEUE_FULL
+  689 0000016A E007            B                BEGIN_ENQUEUE
+  690 0000016C         
+  691 0000016C         QUEUE_FULL
+  692 0000016C         ;Set PSR C flag to 1
+  693 0000016C F3EF 8100       MRS              R1, APSR
+  694 00000170 2320            MOVS             R3, #0x20
+  695 00000172 061B            LSLS             R3, R3, #24
+  696 00000174 4319            ORRS             R1, R1, R3
+  697 00000176 F381 8800       MSR              APSR, R1
+  698 0000017A E01B            B                END_ENQUEUE
+  699 0000017C         
+  700 0000017C         BEGIN_ENQUEUE
+  701 0000017C         
+  702 0000017C         ;Load mem address of in_ptr
+  703 0000017C         ;and then store the value to be enqueued
+  704 0000017C         ;intot he value at that memory address
 
 
 
 ARM Macro Assembler    Page 15 Exercise 11 Multiprecision Arithmetic
 
 
-  705 00000180         ;Increment value of in_ptr by 1, 1 value past
-  706 00000180         ;The queue item. Then store back in IN_PTR
-  707 00000180 1C5B            ADDS             R3, R3, #1
-  708 00000182 600B            STR              R3, [R1, #IN_PTR]
-  709 00000184         
-  710 00000184         ;Increment number of enqueued elements
-  711 00000184 7C4B            LDRB             R3, [R1, #NUM_ENQD]
-  712 00000186 1C5B            ADDS             R3, R3, #1
-  713 00000188 744B            STRB             R3, [R1, #NUM_ENQD]
-  714 0000018A         
-  715 0000018A         ;If IN_PTR is >= BUF_PAST
-  716 0000018A         ;Loop around and adjust inPtr to beginning of
-  717 0000018A         ;the queue buffer
-  718 0000018A 680B            LDR              R3, [R1, #IN_PTR]
-  719 0000018C 68CC            LDR              R4, [R1, #BUF_PAST]
-  720 0000018E         
-  721 0000018E 42A3            CMP              R3, R4
-  722 00000190 DA07            BGE              WRAP_ENQUEUE
-  723 00000192         
-  724 00000192         ;Clear the PSR C flag confirming successful result
-  725 00000192 F3EF 8200       MRS              R2, APSR
-  726 00000196 2320            MOVS             R3, #0x20
-  727 00000198 0612            LSLS             R2, R2, #24
-  728 0000019A 439A            BICS             R2, R2, R3
-  729 0000019C F382 8800       MSR              APSR, R2
-  730 000001A0         
-  731 000001A0 E008            B                END_ENQUEUE
-  732 000001A2         
-  733 000001A2         WRAP_ENQUEUE
-  734 000001A2         ;Adjust in_ptr to beginning of queue buffer
-  735 000001A2 688A            LDR              R2, [R1, #BUF_START]
-  736 000001A4 600A            STR              R2, [R1, #IN_PTR]
-  737 000001A6         
-  738 000001A6         ;Clear the PSR C flag confirming successful result
-  739 000001A6 F3EF 8200       MRS              R2, APSR
-  740 000001AA 2320            MOVS             R3, #0x20
-  741 000001AC 0612            LSLS             R2, R2, #24
-  742 000001AE 439A            BICS             R2, R2, R3
-  743 000001B0 F382 8800       MSR              APSR, R2
-  744 000001B4         
-  745 000001B4         END_ENQUEUE
-  746 000001B4         
-  747 000001B4 BC1C            POP              {R2, R3, R4}
-  748 000001B6 4770            BX               LR
-  749 000001B8         
-  750 000001B8         ;--------------------------------------------
-  751 000001B8         
-  752 000001B8         ;Send a character out of UART0 using interrupts
-  753 000001B8         ;Inputs
-  754 000001B8         ; R0 - Character to enqueue to TxQueue
-  755 000001B8         ;Return - N/A
-  756 000001B8         ;--------------------------------------------
-  757 000001B8         PutChar
-  758 000001B8 B503            PUSH             {R0, R1, LR}
-  759 000001BA         
-  760 000001BA         REPEAT_ENQ
-  761 000001BA         
-  762 000001BA         ;Load input params to initalize queue structure
-  763 000001BA 496C            LDR              R1, =TxQueueRecord
+  705 0000017C 680B            LDR              R3, [R1, #IN_PTR]
+  706 0000017E 7018            STRB             R0, [R3, #0]
+  707 00000180         
+  708 00000180         ;Increment value of in_ptr by 1, 1 value past
+  709 00000180         ;The queue item. Then store back in IN_PTR
+  710 00000180 1C5B            ADDS             R3, R3, #1
+  711 00000182 600B            STR              R3, [R1, #IN_PTR]
+  712 00000184         
+  713 00000184         ;Increment number of enqueued elements
+  714 00000184 7C4B            LDRB             R3, [R1, #NUM_ENQD]
+  715 00000186 1C5B            ADDS             R3, R3, #1
+  716 00000188 744B            STRB             R3, [R1, #NUM_ENQD]
+  717 0000018A         
+  718 0000018A         ;If IN_PTR is >= BUF_PAST
+  719 0000018A         ;Loop around and adjust inPtr to beginning of
+  720 0000018A         ;the queue buffer
+  721 0000018A 680B            LDR              R3, [R1, #IN_PTR]
+  722 0000018C 68CC            LDR              R4, [R1, #BUF_PAST]
+  723 0000018E         
+  724 0000018E 42A3            CMP              R3, R4
+  725 00000190 DA07            BGE              WRAP_ENQUEUE
+  726 00000192         
+  727 00000192         ;Clear the PSR C flag confirming successful result
+  728 00000192 F3EF 8200       MRS              R2, APSR
+  729 00000196 2320            MOVS             R3, #0x20
+  730 00000198 0612            LSLS             R2, R2, #24
+  731 0000019A 439A            BICS             R2, R2, R3
+  732 0000019C F382 8800       MSR              APSR, R2
+  733 000001A0         
+  734 000001A0 E008            B                END_ENQUEUE
+  735 000001A2         
+  736 000001A2         WRAP_ENQUEUE
+  737 000001A2         ;Adjust in_ptr to beginning of queue buffer
+  738 000001A2 688A            LDR              R2, [R1, #BUF_START]
+  739 000001A4 600A            STR              R2, [R1, #IN_PTR]
+  740 000001A6         
+  741 000001A6         ;Clear the PSR C flag confirming successful result
+  742 000001A6 F3EF 8200       MRS              R2, APSR
+  743 000001AA 2320            MOVS             R3, #0x20
+  744 000001AC 0612            LSLS             R2, R2, #24
+  745 000001AE 439A            BICS             R2, R2, R3
+  746 000001B0 F382 8800       MSR              APSR, R2
+  747 000001B4         
+  748 000001B4         END_ENQUEUE
+  749 000001B4         
+  750 000001B4 BC1C            POP              {R2, R3, R4}
+  751 000001B6 4770            BX               LR
+  752 000001B8         
+  753 000001B8         ;--------------------------------------------
+  754 000001B8         
+  755 000001B8         ;Send a character out of UART0 using interrupts
+  756 000001B8         ;Inputs
+  757 000001B8         ; R0 - Character to enqueue to TxQueue
+  758 000001B8         ;Return - N/A
+  759 000001B8         ;--------------------------------------------
+  760 000001B8         PutChar
+  761 000001B8 B503            PUSH             {R0, R1, LR}
+  762 000001BA         
+  763 000001BA         REPEAT_ENQ
 
 
 
 ARM Macro Assembler    Page 16 Exercise 11 Multiprecision Arithmetic
 
 
-  764 000001BC         
-  765 000001BC         ;Mask all other interrupts
-  766 000001BC B672            CPSID            I
-  767 000001BE         
-  768 000001BE         ;Critical section -> enqueue character
-  769 000001BE         ;Enqueue character that's already in R0
-  770 000001BE F7FF FFCF       BL               EnQueue
-  771 000001C2         
-  772 000001C2         ;Enable interrupts
-  773 000001C2 B662            CPSIE            I
-  774 000001C4         
-  775 000001C4 D2F9            BCS              REPEAT_ENQ
-  776 000001C6         
-  777 000001C6         ;Enable UART0 Transmitter, reciever, and rx interrupt
-  778 000001C6 486B            LDR              R0, =UART0_BASE
-  779 000001C8 21AC            MOVS             R1,#UART0_C2_TI_RI
-  780 000001CA 70C1            STRB             R1,[R0,#UART0_C2_OFFSET]
-  781 000001CC         
-  782 000001CC         ;Pop original register values off the stack
-  783 000001CC BD03            POP              {R0, R1, PC}
-  784 000001CE         
-  785 000001CE         ;--------------------------------------------
-  786 000001CE         
-  787 000001CE         ;Receive a character from UART0 using interrupts
-  788 000001CE         ;Inputs - N/A
-  789 000001CE         ;Return
-  790 000001CE         ; R0 - Character dequeued from RxQueue
-  791 000001CE         ;--------------------------------------------
-  792 000001CE         GetChar
-  793 000001CE B506            PUSH             {R1, R2, LR} ; Push varibles on
+  764 000001BA         
+  765 000001BA         ;Load input params to initalize queue structure
+  766 000001BA 496C            LDR              R1, =TxQueueRecord
+  767 000001BC         
+  768 000001BC         ;Mask all other interrupts
+  769 000001BC B672            CPSID            I
+  770 000001BE         
+  771 000001BE         ;Critical section -> enqueue character
+  772 000001BE         ;Enqueue character that's already in R0
+  773 000001BE F7FF FFCF       BL               EnQueue
+  774 000001C2         
+  775 000001C2         ;Enable interrupts
+  776 000001C2 B662            CPSIE            I
+  777 000001C4         
+  778 000001C4 D2F9            BCS              REPEAT_ENQ
+  779 000001C6         
+  780 000001C6         ;Enable UART0 Transmitter, reciever, and rx interrupt
+  781 000001C6 486B            LDR              R0, =UART0_BASE
+  782 000001C8 21AC            MOVS             R1,#UART0_C2_TI_RI
+  783 000001CA 70C1            STRB             R1,[R0,#UART0_C2_OFFSET]
+  784 000001CC         
+  785 000001CC         ;Pop original register values off the stack
+  786 000001CC BD03            POP              {R0, R1, PC}
+  787 000001CE         
+  788 000001CE         ;--------------------------------------------
+  789 000001CE         
+  790 000001CE         ;Receive a character from UART0 using interrupts
+  791 000001CE         ;Inputs - N/A
+  792 000001CE         ;Return
+  793 000001CE         ; R0 - Character dequeued from RxQueue
+  794 000001CE         ;--------------------------------------------
+  795 000001CE         GetChar
+  796 000001CE B506            PUSH             {R1, R2, LR} ; Push varibles on
                                                              the stack to avoid
                                                              loss
-  794 000001D0         
-  795 000001D0 4967            LDR              R1, =RxQueueRecord
-  796 000001D2         
-  797 000001D2         REPEAT_DEQ
-  798 000001D2         
-  799 000001D2         ;Mask all interrupts
-  800 000001D2 B672            CPSID            I
-  801 000001D4         
-  802 000001D4         ;Critical code section - dequeue
-  803 000001D4 F7FF FFA1       BL               DeQueue
-  804 000001D8         
-  805 000001D8         ;Re enable interrupts
-  806 000001D8 B662            CPSIE            I
-  807 000001DA         
-  808 000001DA D2FA            BCS              REPEAT_DEQ
-  809 000001DC         
-  810 000001DC BD06            POP              {R1, R2, PC}
-  811 000001DE         
-  812 000001DE         ;--------------------------------------------
-  813 000001DE         
-  814 000001DE         ;R0 = memory location to store string
-  815 000001DE         ;R1 = Buffer capacity (numChars)
+  797 000001D0         
+  798 000001D0 4967            LDR              R1, =RxQueueRecord
+  799 000001D2         
+  800 000001D2         REPEAT_DEQ
+  801 000001D2         
+  802 000001D2         ;Mask all interrupts
+  803 000001D2 B672            CPSID            I
+  804 000001D4         
+  805 000001D4         ;Critical code section - dequeue
+  806 000001D4 F7FF FFA1       BL               DeQueue
+  807 000001D8         
+  808 000001D8         ;Re enable interrupts
+  809 000001D8 B662            CPSIE            I
+  810 000001DA         
+  811 000001DA D2FA            BCS              REPEAT_DEQ
+  812 000001DC         
+  813 000001DC BD06            POP              {R1, R2, PC}
+  814 000001DE         
+  815 000001DE         ;--------------------------------------------
   816 000001DE         
-  817 000001DE         ;--------------------------------------------
-  818 000001DE         GetStringSB
+  817 000001DE         ;R0 = memory location to store string
+  818 000001DE         ;R1 = Buffer capacity (numChars)
   819 000001DE         
-  820 000001DE B50E            PUSH             {R1, R2, R3, LR}
+  820 000001DE         ;--------------------------------------------
 
 
 
 ARM Macro Assembler    Page 17 Exercise 11 Multiprecision Arithmetic
 
 
-  821 000001E0 2200            MOVS             R2, #0      ;Initalize string o
+  821 000001DE         GetStringSB
+  822 000001DE         
+  823 000001DE B50E            PUSH             {R1, R2, R3, LR}
+  824 000001E0 2200            MOVS             R2, #0      ;Initalize string o
                                                             ffset to zero
-  822 000001E2         
-  823 000001E2         
-  824 000001E2         TAKE_INPUT
   825 000001E2         
-  826 000001E2 B401            PUSH             {R0}
-  827 000001E4         ;Grab the next character of input and store in R3
-  828 000001E4 F7FF FFF3       BL               GetChar
-  829 000001E8 0003            MOVS             R3, R0
-  830 000001EA BC01            POP              {R0}
-  831 000001EC         
-  832 000001EC         ;check if character is a carrige return
-  833 000001EC 2B0D            CMP              R3, #13
-  834 000001EE D00A            BEQ              END_GET_STR
-  835 000001F0         
-  836 000001F0         ;If all characters have been processed
-  837 000001F0         ;and another comes in, dont echo and reset.
-  838 000001F0 2900            CMP              R1, #0
-  839 000001F2 D0F6            BEQ              TAKE_INPUT
-  840 000001F4         
-  841 000001F4         ;Echo character to the terminal
-  842 000001F4 B401            PUSH             {R0}        ;Preserve state of 
+  826 000001E2         
+  827 000001E2         TAKE_INPUT
+  828 000001E2         
+  829 000001E2 B401            PUSH             {R0}
+  830 000001E4         ;Grab the next character of input and store in R3
+  831 000001E4 F7FF FFFE       BL               GetChar
+  832 000001E8 0003            MOVS             R3, R0
+  833 000001EA BC01            POP              {R0}
+  834 000001EC         
+  835 000001EC         ;check if character is a carrige return
+  836 000001EC 2B0D            CMP              R3, #13
+  837 000001EE D00A            BEQ              END_GET_STR
+  838 000001F0         
+  839 000001F0         ;If all characters have been processed
+  840 000001F0         ;and another comes in, dont echo and reset.
+  841 000001F0 2900            CMP              R1, #0
+  842 000001F2 D0F6            BEQ              TAKE_INPUT
+  843 000001F4         
+  844 000001F4         ;Echo character to the terminal
+  845 000001F4 B401            PUSH             {R0}        ;Preserve state of 
                                                             R0 and LR
-  843 000001F6 0018            MOVS             R0, R3      ;Move char in R3 fo
+  846 000001F6 0018            MOVS             R0, R3      ;Move char in R3 fo
                                                             r transit
-  844 000001F8 F7FF FFDE       BL               PutChar
-  845 000001FC BC01            POP              {R0}
-  846 000001FE         
-  847 000001FE         ;String[i] = input char
-  848 000001FE 5483            STRB             R3, [R0, R2]
-  849 00000200         
-  850 00000200         ;Decrement number of characters left to read
-  851 00000200 1E49            SUBS             R1, R1, #1
-  852 00000202         ;Add to offset index for string
-  853 00000202 1C52            ADDS             R2, R2, #1
-  854 00000204         
-  855 00000204 E7ED            B                TAKE_INPUT
-  856 00000206         
-  857 00000206         END_GET_STR
-  858 00000206         
-  859 00000206         ;null terminate String
-  860 00000206 2300            MOVS             R3, #0
-  861 00000208 5483            STRB             R3, [R0, R2]
-  862 0000020A         
-  863 0000020A         ;Pop PC returns nested subroutine
-  864 0000020A BD0E            POP              {R1, R2, R3, PC}
-  865 0000020C         
-  866 0000020C         
-  867 0000020C         PrintCharLF
-  868 0000020C         ;Print character in R0
-  869 0000020C         ;In addition to a carrige return and a line feed
-  870 0000020C         ;Used to produce the command 'menu' with single char inp
+  847 000001F8 F7FF FFFE       BL               PutChar
+  848 000001FC BC01            POP              {R0}
+  849 000001FE         
+  850 000001FE         ;String[i] = input char
+  851 000001FE 5483            STRB             R3, [R0, R2]
+  852 00000200         
+  853 00000200         ;Decrement number of characters left to read
+  854 00000200 1E49            SUBS             R1, R1, #1
+  855 00000202         ;Add to offset index for string
+  856 00000202 1C52            ADDS             R2, R2, #1
+  857 00000204         
+  858 00000204 E7ED            B                TAKE_INPUT
+  859 00000206         
+  860 00000206         END_GET_STR
+  861 00000206         
+  862 00000206         ;null terminate String
+  863 00000206 2300            MOVS             R3, #0
+  864 00000208 5483            STRB             R3, [R0, R2]
+  865 0000020A         
+  866 0000020A         ;Pop PC returns nested subroutine
+  867 0000020A BD0E            POP              {R1, R2, R3, PC}
+  868 0000020C         
+  869 0000020C         
+  870 0000020C         PrintCharLF
+  871 0000020C         ;Print character in R0
+  872 0000020C         ;In addition to a carrige return and a line feed
+  873 0000020C         ;Used to produce the command 'menu' with single char inp
                        uts
-  871 0000020C         
-  872 0000020C B501            PUSH             {R0, LR}
-  873 0000020E         ;Echo the char back to the user
-  874 0000020E F7FF FFD3       BL               PutChar
-  875 00000212         
+  874 0000020C         
+  875 0000020C B501            PUSH             {R0, LR}
 
 
 
 ARM Macro Assembler    Page 18 Exercise 11 Multiprecision Arithmetic
 
 
-  876 00000212         ;Print CR and LF to the screen
-  877 00000212 200D            MOVS             R0, #0x0D
-  878 00000214 F7FF FFD0       BL               PutChar
-  879 00000218         
-  880 00000218 200A            MOVS             R0, #0x0A
-  881 0000021A F7FF FFCD       BL               PutChar
-  882 0000021E         
-  883 0000021E BD01            POP              {R0, PC}
-  884 00000220         
-  885 00000220         ;--------------------------------------------
-  886 00000220         
-  887 00000220         ;R0 = memory location of string to print
-  888 00000220         ;R1 = Buffer capacity (numChars)
-  889 00000220         PutStringSB
-  890 00000220         ;--------------------------------------------
-  891 00000220         
-  892 00000220 B50F            PUSH             {R0, R1, R2, R3, LR}
-  893 00000222         
-  894 00000222         ;Determine the length of the string before printing
-  895 00000222 F000 F80D       BL               LengthStringSB
-  896 00000226 0011            MOVS             R1, R2
-  897 00000228         
-  898 00000228         READ_CHAR
-  899 00000228         
-  900 00000228         ;If all characters have been processed
-  901 00000228         ;End subroutine execution
-  902 00000228 2900            CMP              R1, #0
-  903 0000022A D008            BEQ              END_PUT_STR
-  904 0000022C         
-  905 0000022C         ;Grab the next character of input and store in R3
-  906 0000022C 7803            LDRB             R3, [R0, #0]
-  907 0000022E         
-  908 0000022E         ;Echo character to the terminal
-  909 0000022E B401            PUSH             {R0}        ;Preserve state of 
+  876 0000020E         ;Echo the char back to the user
+  877 0000020E F7FF FFFE       BL               PutChar
+  878 00000212         
+  879 00000212         ;Print CR and LF to the screen
+  880 00000212 200D            MOVS             R0, #0x0D
+  881 00000214 F7FF FFFE       BL               PutChar
+  882 00000218         
+  883 00000218 200A            MOVS             R0, #0x0A
+  884 0000021A F7FF FFFE       BL               PutChar
+  885 0000021E         
+  886 0000021E BD01            POP              {R0, PC}
+  887 00000220         
+  888 00000220         ;--------------------------------------------
+  889 00000220         
+  890 00000220         ;R0 = memory location of string to print
+  891 00000220         ;R1 = Buffer capacity (numChars)
+  892 00000220         PutStringSB
+  893 00000220         ;--------------------------------------------
+  894 00000220         
+  895 00000220 B50F            PUSH             {R0, R1, R2, R3, LR}
+  896 00000222         
+  897 00000222         ;Determine the length of the string before printing
+  898 00000222 F000 F80D       BL               LengthStringSB
+  899 00000226 0011            MOVS             R1, R2
+  900 00000228         
+  901 00000228         READ_CHAR
+  902 00000228         
+  903 00000228         ;If all characters have been processed
+  904 00000228         ;End subroutine execution
+  905 00000228 2900            CMP              R1, #0
+  906 0000022A D008            BEQ              END_PUT_STR
+  907 0000022C         
+  908 0000022C         ;Grab the next character of input and store in R3
+  909 0000022C 7803            LDRB             R3, [R0, #0]
+  910 0000022E         
+  911 0000022E         ;Echo character to the terminal
+  912 0000022E B401            PUSH             {R0}        ;Preserve state of 
                                                             R0 and LR
-  910 00000230 0018            MOVS             R0, R3      ;Move char in R3 fo
+  913 00000230 0018            MOVS             R0, R3      ;Move char in R3 fo
                                                             r transit
-  911 00000232 F7FF FFC1       BL               PutChar
-  912 00000236 BC01            POP              {R0}
-  913 00000238         
-  914 00000238         ;Decrement number of characters left to read
-  915 00000238 1E49            SUBS             R1, R1, #1
-  916 0000023A         ;Add to offset index for string
-  917 0000023A 1C40            ADDS             R0, R0, #1
-  918 0000023C         
-  919 0000023C E7F4            B                READ_CHAR
-  920 0000023E         
-  921 0000023E         END_PUT_STR
-  922 0000023E         
-  923 0000023E         ;Pop PC returns nested subroutine
-  924 0000023E         ;Return with pointer at last char of string in R0
-  925 0000023E BD0F            POP              {R0, R1, R2, R3, PC}
-  926 00000240         
-  927 00000240         ;--------------------------------------------
-  928 00000240         
+  914 00000232 F7FF FFFE       BL               PutChar
+  915 00000236 BC01            POP              {R0}
+  916 00000238         
+  917 00000238         ;Decrement number of characters left to read
+  918 00000238 1E49            SUBS             R1, R1, #1
+  919 0000023A         ;Add to offset index for string
+  920 0000023A 1C40            ADDS             R0, R0, #1
+  921 0000023C         
+  922 0000023C E7F4            B                READ_CHAR
+  923 0000023E         
+  924 0000023E         END_PUT_STR
+  925 0000023E         
+  926 0000023E         ;Pop PC returns nested subroutine
+  927 0000023E         ;Return with pointer at last char of string in R0
+  928 0000023E BD0F            POP              {R0, R1, R2, R3, PC}
   929 00000240         
-  930 00000240         ;R0 = memory location of string 
-  931 00000240         ;R1 = Buffer capacity (numChars)
-  932 00000240         ;R2 = Output num of String length
+  930 00000240         ;--------------------------------------------
+  931 00000240         
+  932 00000240         
 
 
 
 ARM Macro Assembler    Page 19 Exercise 11 Multiprecision Arithmetic
 
 
-  933 00000240         LengthStringSB
-  934 00000240         ;--------------------------------------------
-  935 00000240         
-  936 00000240 B51B            PUSH             {R0, R1, R3, R4, LR}
-  937 00000242 214F            MOVS             R1, #MAX_STRING
-  938 00000244 2200            MOVS             R2, #0      ; Initalize length 
+  933 00000240         ;R0 = memory location of string 
+  934 00000240         ;R1 = Buffer capacity (numChars)
+  935 00000240         ;R2 = Output num of String length
+  936 00000240         LengthStringSB
+  937 00000240         ;--------------------------------------------
+  938 00000240         
+  939 00000240 B51B            PUSH             {R0, R1, R3, R4, LR}
+  940 00000242 214F            MOVS             R1, #MAX_STRING
+  941 00000244 2200            MOVS             R2, #0      ; Initalize length 
                                                             to zero.
-  939 00000246 2400            MOVS             R4, #0      ; Initalize STR off
+  942 00000246 2400            MOVS             R4, #0      ; Initalize STR off
                                                             set to zero
-  940 00000248         
-  941 00000248         ADD_TO_LEN
-  942 00000248         
-  943 00000248         ;if legth is >= buffer, return
-  944 00000248 428A            CMP              R2, R1
-  945 0000024A DA05            BGE              END_GET_LEN
-  946 0000024C         
-  947 0000024C         ;Grab the next character of input and store in R3
-  948 0000024C 5D03            LDRB             R3, [R0, R4]
-  949 0000024E         
-  950 0000024E         ;check if character is a null terminator
-  951 0000024E 2B00            CMP              R3, #0
-  952 00000250 D002            BEQ              END_GET_LEN
-  953 00000252         
-  954 00000252         ;Add to string offset
-  955 00000252 1C64            ADDS             R4, R4, #1
-  956 00000254         ;Add 1 to max
-  957 00000254 1C52            ADDS             R2, R2, #1
-  958 00000256         
-  959 00000256 E7F7            B                ADD_TO_LEN
-  960 00000258         
-  961 00000258         END_GET_LEN
-  962 00000258         
-  963 00000258         ;Pop PC returns nested subroutine
-  964 00000258 BD1B            POP              {R0, R1, R3, R4, PC}
-  965 0000025A         
-  966 0000025A         ;--------------------------------------------
-  967 0000025A         
-  968 0000025A         DIVU
+  943 00000248         
+  944 00000248         ADD_TO_LEN
+  945 00000248         
+  946 00000248         ;if legth is >= buffer, return
+  947 00000248 428A            CMP              R2, R1
+  948 0000024A DA05            BGE              END_GET_LEN
+  949 0000024C         
+  950 0000024C         ;Grab the next character of input and store in R3
+  951 0000024C 5D03            LDRB             R3, [R0, R4]
+  952 0000024E         
+  953 0000024E         ;check if character is a null terminator
+  954 0000024E 2B00            CMP              R3, #0
+  955 00000250 D002            BEQ              END_GET_LEN
+  956 00000252         
+  957 00000252         ;Add to string offset
+  958 00000252 1C64            ADDS             R4, R4, #1
+  959 00000254         ;Add 1 to max
+  960 00000254 1C52            ADDS             R2, R2, #1
+  961 00000256         
+  962 00000256 E7F7            B                ADD_TO_LEN
+  963 00000258         
+  964 00000258         END_GET_LEN
+  965 00000258         
+  966 00000258         ;Pop PC returns nested subroutine
+  967 00000258 BD1B            POP              {R0, R1, R3, R4, PC}
+  968 0000025A         
   969 0000025A         ;--------------------------------------------
-  970 0000025A B40C            PUSH             {R2,R3}     ; Preserve state of
+  970 0000025A         
+  971 0000025A         DIVU
+  972 0000025A         ;--------------------------------------------
+  973 0000025A B40C            PUSH             {R2,R3}     ; Preserve state of
                                                              Registers, will be
                                                              using for computat
                                                             ion
-  971 0000025C 2800            CMP              R0, #0
-  972 0000025E D000            BEQ              SET_C
-  973 00000260 E007            B                NO_ERR
-  974 00000262         
-  975 00000262         SET_C
-  976 00000262         
-  977 00000262 F3EF 8200       MRS              R2, APSR
-  978 00000266 2320            MOVS             R3, #0x20
-  979 00000268 061B            LSLS             R3, R3, #24
-  980 0000026A 431A            ORRS             R2, R2, R3
-  981 0000026C F382 8800       MSR              APSR, R2
-  982 00000270         
-  983 00000270 E00D            B                RETURN
-  984 00000272         NO_ERR
-  985 00000272 2200            MOVS             R2, #0      ; Move beginning qu
-                                                            otient to R2
+  974 0000025C 2800            CMP              R0, #0
+  975 0000025E D000            BEQ              SET_C
+  976 00000260 E007            B                NO_ERR
+  977 00000262         
+  978 00000262         SET_C
+  979 00000262         
+  980 00000262 F3EF 8200       MRS              R2, APSR
+  981 00000266 2320            MOVS             R3, #0x20
+  982 00000268 061B            LSLS             R3, R3, #24
+  983 0000026A 431A            ORRS             R2, R2, R3
+  984 0000026C F382 8800       MSR              APSR, R2
+  985 00000270         
+  986 00000270 E00D            B                RETURN
 
 
 
 ARM Macro Assembler    Page 20 Exercise 11 Multiprecision Arithmetic
 
 
-  986 00000274         
-  987 00000274         DIVIDE_OP
-  988 00000274 4281            CMP              R1, R0
-  989 00000276 D302            BLO              END_DIVIDE_WHILE
-  990 00000278         
-  991 00000278 1A09            SUBS             R1, R1, R0  ; R1 = dividend - d
+  987 00000272         NO_ERR
+  988 00000272 2200            MOVS             R2, #0      ; Move beginning qu
+                                                            otient to R2
+  989 00000274         
+  990 00000274         DIVIDE_OP
+  991 00000274 4281            CMP              R1, R0
+  992 00000276 D302            BLO              END_DIVIDE_WHILE
+  993 00000278         
+  994 00000278 1A09            SUBS             R1, R1, R0  ; R1 = dividend - d
                                                             ivisor
-  992 0000027A 1C52            ADDS             R2, R2, #1  ; Quotient += 1
-  993 0000027C         
-  994 0000027C E7FA            B                DIVIDE_OP
-  995 0000027E         
-  996 0000027E         END_DIVIDE_WHILE
-  997 0000027E 0010            MOVS             R0, R2
-  998 00000280         
-  999 00000280 F3EF 8200       MRS              R2, APSR
- 1000 00000284 2320            MOVS             R3, #0x20
- 1001 00000286 0612            LSLS             R2, R2, #24
- 1002 00000288 439A            BICS             R2, R2, R3
- 1003 0000028A F382 8800       MSR              APSR, R2
- 1004 0000028E         
- 1005 0000028E         RETURN
- 1006 0000028E BC0C            POP              {R2, R3}    ;Return registers t
+  995 0000027A 1C52            ADDS             R2, R2, #1  ; Quotient += 1
+  996 0000027C         
+  997 0000027C E7FA            B                DIVIDE_OP
+  998 0000027E         
+  999 0000027E         END_DIVIDE_WHILE
+ 1000 0000027E 0010            MOVS             R0, R2
+ 1001 00000280         
+ 1002 00000280 F3EF 8200       MRS              R2, APSR
+ 1003 00000284 2320            MOVS             R3, #0x20
+ 1004 00000286 0612            LSLS             R2, R2, #24
+ 1005 00000288 439A            BICS             R2, R2, R3
+ 1006 0000028A F382 8800       MSR              APSR, R2
+ 1007 0000028E         
+ 1008 0000028E         RETURN
+ 1009 0000028E BC0C            POP              {R2, R3}    ;Return registers t
                                                             o previous state
- 1007 00000290 4770            BX               LR          ;Jump out of subrou
+ 1010 00000290 4770            BX               LR          ;Jump out of subrou
                                                             tine
- 1008 00000292         
- 1009 00000292         ;--------------------------------------------
- 1010 00000292         
- 1011 00000292         Init_UART0_IRQ
- 1012 00000292         ;Initalize UART0 for Serial Driver
- 1013 00000292         ;-------------------------------------------------------
+ 1011 00000292         
+ 1012 00000292         ;--------------------------------------------
+ 1013 00000292         
+ 1014 00000292         Init_UART0_IRQ
+ 1015 00000292         ;Initalize UART0 for Serial Driver
+ 1016 00000292         ;-------------------------------------------------------
                        --------
- 1014 00000292         
- 1015 00000292         ;Allocate R0-2 for Ri=k 
- 1016 00000292         ;Store prevoius values for restoration
- 1017 00000292 B507            PUSH             {R0, R1, R2, LR}
- 1018 00000294         
- 1019 00000294         ;Initalize rxQueue
- 1020 00000294 4936            LDR              R1, =RxQueueRecord
- 1021 00000296 4838            LDR              R0, =RxQueue
- 1022 00000298 2204            MOVS             R2, #Q_BUF_SZ
- 1023 0000029A         
- 1024 0000029A F7FF FF35       BL               InitQueue
- 1025 0000029E         
- 1026 0000029E 4933            LDR              R1, =TxQueueRecord
- 1027 000002A0 4836            LDR              R0, =TxQueue
- 1028 000002A2 2204            MOVS             R2, #Q_BUF_SZ
- 1029 000002A4         
- 1030 000002A4 F7FF FF30       BL               InitQueue
- 1031 000002A8         
- 1032 000002A8         ;Select MCGPLLCLK / 2 as UART0 clock source
- 1033 000002A8 483B            LDR              R0,=SIM_SOPT2
- 1034 000002AA 493C            LDR              R1,=SIM_SOPT2_UART0SRC_MASK
- 1035 000002AC 6802            LDR              R2,[R0,#0]
- 1036 000002AE 438A            BICS             R2,R2,R1
- 1037 000002B0 493B            LDR              R1,=SIM_SOPT2_UART0_MCGPLLCLK_D
-IV2
- 1038 000002B2 430A            ORRS             R2,R2,R1
- 1039 000002B4 6002            STR              R2,[R0,#0]
+ 1017 00000292         
+ 1018 00000292         ;Allocate R0-2 for Ri=k 
+ 1019 00000292         ;Store prevoius values for restoration
+ 1020 00000292 B507            PUSH             {R0, R1, R2, LR}
+ 1021 00000294         
+ 1022 00000294         ;Initalize rxQueue
+ 1023 00000294 4936            LDR              R1, =RxQueueRecord
+ 1024 00000296 4838            LDR              R0, =RxQueue
+ 1025 00000298 2204            MOVS             R2, #Q_BUF_SZ
+ 1026 0000029A         
+ 1027 0000029A F7FF FF35       BL               InitQueue
+ 1028 0000029E         
+ 1029 0000029E 4933            LDR              R1, =TxQueueRecord
+ 1030 000002A0 4836            LDR              R0, =TxQueue
+ 1031 000002A2 2204            MOVS             R2, #Q_BUF_SZ
+ 1032 000002A4         
+ 1033 000002A4 F7FF FF30       BL               InitQueue
+ 1034 000002A8         
+ 1035 000002A8         ;Select MCGPLLCLK / 2 as UART0 clock source
+ 1036 000002A8 483B            LDR              R0,=SIM_SOPT2
+ 1037 000002AA 493C            LDR              R1,=SIM_SOPT2_UART0SRC_MASK
+ 1038 000002AC 6802            LDR              R2,[R0,#0]
+ 1039 000002AE 438A            BICS             R2,R2,R1
+ 1040 000002B0 493B            LDR              R1,=SIM_SOPT2_UART0_MCGPLLCLK_D
 
 
 
 ARM Macro Assembler    Page 21 Exercise 11 Multiprecision Arithmetic
 
 
- 1040 000002B6         ;Enable external connection for UART0
- 1041 000002B6 483B            LDR              R0,=SIM_SOPT5
- 1042 000002B8 493B            LDR              R1,= SIM_SOPT5_UART0_EXTERN_MAS
+IV2
+ 1041 000002B2 430A            ORRS             R2,R2,R1
+ 1042 000002B4 6002            STR              R2,[R0,#0]
+ 1043 000002B6         ;Enable external connection for UART0
+ 1044 000002B6 483B            LDR              R0,=SIM_SOPT5
+ 1045 000002B8 493B            LDR              R1,= SIM_SOPT5_UART0_EXTERN_MAS
 K_CLEAR
- 1043 000002BA 6802            LDR              R2,[R0,#0]
- 1044 000002BC 438A            BICS             R2,R2,R1
- 1045 000002BE 6002            STR              R2,[R0,#0]
- 1046 000002C0         ;Enable clock for UART0 module
- 1047 000002C0 483A            LDR              R0,=SIM_SCGC4
- 1048 000002C2 493B            LDR              R1,= SIM_SCGC4_UART0_MASK
- 1049 000002C4 6802            LDR              R2,[R0,#0]
- 1050 000002C6 430A            ORRS             R2,R2,R1
- 1051 000002C8 6002            STR              R2,[R0,#0]
- 1052 000002CA         ;Enable clock for Port A module
- 1053 000002CA 483A            LDR              R0,=SIM_SCGC5
- 1054 000002CC 493A            LDR              R1,= SIM_SCGC5_PORTA_MASK
- 1055 000002CE 6802            LDR              R2,[R0,#0]
- 1056 000002D0 430A            ORRS             R2,R2,R1
- 1057 000002D2 6002            STR              R2,[R0,#0]
- 1058 000002D4         ;Connect PORT A Pin 1 (PTA1) to UART0 Rx (J1 Pin 02)
- 1059 000002D4 4839            LDR              R0,=PORTA_PCR1
- 1060 000002D6 493A            LDR              R1,=PORT_PCR_SET_PTA1_UART0_RX
- 1061 000002D8 6001            STR              R1,[R0,#0]
- 1062 000002DA         ;Connect PORT A Pin 2 (PTA2) to UART0 Tx (J1 Pin 04)
- 1063 000002DA 483A            LDR              R0,=PORTA_PCR2
- 1064 000002DC 4938            LDR              R1,=PORT_PCR_SET_PTA2_UART0_TX
- 1065 000002DE 6001            STR              R1,[R0,#0]
- 1066 000002E0         
- 1067 000002E0         ;Disable UART0 receiver and transmitter
- 1068 000002E0 4824            LDR              R0,=UART0_BASE
- 1069 000002E2 210C            MOVS             R1,#UART0_C2_T_R
- 1070 000002E4 78C2            LDRB             R2,[R0,#UART0_C2_OFFSET]
- 1071 000002E6 438A            BICS             R2,R2,R1
- 1072 000002E8 70C2            STRB             R2,[R0,#UART0_C2_OFFSET]
- 1073 000002EA         
- 1074 000002EA         ;Init NVIC for UART0 Interrupts
- 1075 000002EA         
- 1076 000002EA         ;Set UART0 IRQ Priority
- 1077 000002EA 4837            LDR              R0, =UART0_IPR
- 1078 000002EC         
- 1079 000002EC         ;TODO: Do I need this?
- 1080 000002EC 4937            LDR              R1, =NVIC_IPR_UART0_MASK
- 1081 000002EE         
- 1082 000002EE 4A37            LDR              R2, =NVIC_IPR_UART0_PRI_3
- 1083 000002F0         
- 1084 000002F0 6803            LDR              R3, [R0, #0]
- 1085 000002F2         
- 1086 000002F2         ;TODO: Do I need this?
- 1087 000002F2 438B            BICS             R3, R3, R1
- 1088 000002F4         
- 1089 000002F4 4313            ORRS             R3, R3, R2
- 1090 000002F6         
- 1091 000002F6 6003            STR              R3, [R0, #0]
- 1092 000002F8         
- 1093 000002F8         ;Clear any pending UART0 Interrupts
- 1094 000002F8 4835            LDR              R0, =NVIC_ICPR
- 1095 000002FA 4936            LDR              R1, =NVIC_ICPR_UART0_MASK
- 1096 000002FC 6001            STR              R1, [R0, #0]
- 1097 000002FE         
+ 1046 000002BA 6802            LDR              R2,[R0,#0]
+ 1047 000002BC 438A            BICS             R2,R2,R1
+ 1048 000002BE 6002            STR              R2,[R0,#0]
+ 1049 000002C0         ;Enable clock for UART0 module
+ 1050 000002C0 483A            LDR              R0,=SIM_SCGC4
+ 1051 000002C2 493B            LDR              R1,= SIM_SCGC4_UART0_MASK
+ 1052 000002C4 6802            LDR              R2,[R0,#0]
+ 1053 000002C6 430A            ORRS             R2,R2,R1
+ 1054 000002C8 6002            STR              R2,[R0,#0]
+ 1055 000002CA         ;Enable clock for Port A module
+ 1056 000002CA 483A            LDR              R0,=SIM_SCGC5
+ 1057 000002CC 493A            LDR              R1,= SIM_SCGC5_PORTA_MASK
+ 1058 000002CE 6802            LDR              R2,[R0,#0]
+ 1059 000002D0 430A            ORRS             R2,R2,R1
+ 1060 000002D2 6002            STR              R2,[R0,#0]
+ 1061 000002D4         ;Connect PORT A Pin 1 (PTA1) to UART0 Rx (J1 Pin 02)
+ 1062 000002D4 4839            LDR              R0,=PORTA_PCR1
+ 1063 000002D6 493A            LDR              R1,=PORT_PCR_SET_PTA1_UART0_RX
+ 1064 000002D8 6001            STR              R1,[R0,#0]
+ 1065 000002DA         ;Connect PORT A Pin 2 (PTA2) to UART0 Tx (J1 Pin 04)
+ 1066 000002DA 483A            LDR              R0,=PORTA_PCR2
+ 1067 000002DC 4938            LDR              R1,=PORT_PCR_SET_PTA2_UART0_TX
+ 1068 000002DE 6001            STR              R1,[R0,#0]
+ 1069 000002E0         
+ 1070 000002E0         ;Disable UART0 receiver and transmitter
+ 1071 000002E0 4824            LDR              R0,=UART0_BASE
+ 1072 000002E2 210C            MOVS             R1,#UART0_C2_T_R
+ 1073 000002E4 78C2            LDRB             R2,[R0,#UART0_C2_OFFSET]
+ 1074 000002E6 438A            BICS             R2,R2,R1
+ 1075 000002E8 70C2            STRB             R2,[R0,#UART0_C2_OFFSET]
+ 1076 000002EA         
+ 1077 000002EA         ;Init NVIC for UART0 Interrupts
+ 1078 000002EA         
+ 1079 000002EA         ;Set UART0 IRQ Priority
+ 1080 000002EA 4837            LDR              R0, =UART0_IPR
+ 1081 000002EC         
+ 1082 000002EC         ;TODO: Do I need this?
+ 1083 000002EC 4937            LDR              R1, =NVIC_IPR_UART0_MASK
+ 1084 000002EE         
+ 1085 000002EE 4A37            LDR              R2, =NVIC_IPR_UART0_PRI_3
+ 1086 000002F0         
+ 1087 000002F0 6803            LDR              R3, [R0, #0]
+ 1088 000002F2         
+ 1089 000002F2         ;TODO: Do I need this?
+ 1090 000002F2 438B            BICS             R3, R3, R1
+ 1091 000002F4         
+ 1092 000002F4 4313            ORRS             R3, R3, R2
+ 1093 000002F6         
+ 1094 000002F6 6003            STR              R3, [R0, #0]
+ 1095 000002F8         
+ 1096 000002F8         ;Clear any pending UART0 Interrupts
+ 1097 000002F8 4835            LDR              R0, =NVIC_ICPR
 
 
 
 ARM Macro Assembler    Page 22 Exercise 11 Multiprecision Arithmetic
 
 
- 1098 000002FE         ;Unmask UART0 interrupts
- 1099 000002FE 4836            LDR              R0, =NVIC_ISER
- 1100 00000300 4934            LDR              R1, =NVIC_ISER_UART0_MASK
- 1101 00000302 6001            STR              R1, [R0, #0]
- 1102 00000304         
- 1103 00000304         ;Init UART0 for 8N1 format at 9600 Baud,
- 1104 00000304         ;and enable the rx interrupt
+ 1098 000002FA 4936            LDR              R1, =NVIC_ICPR_UART0_MASK
+ 1099 000002FC 6001            STR              R1, [R0, #0]
+ 1100 000002FE         
+ 1101 000002FE         ;Unmask UART0 interrupts
+ 1102 000002FE 4836            LDR              R0, =NVIC_ISER
+ 1103 00000300 4934            LDR              R1, =NVIC_ISER_UART0_MASK
+ 1104 00000302 6001            STR              R1, [R0, #0]
  1105 00000304         
- 1106 00000304 481B            LDR              R0, =UART0_BASE
- 1107 00000306         
- 1108 00000306 2101            MOVS             R1,#UART0_BDH_9600
- 1109 00000308 7001            STRB             R1,[R0,#UART0_BDH_OFFSET]
- 1110 0000030A 2138            MOVS             R1,#UART0_BDL_9600
- 1111 0000030C 7041            STRB             R1,[R0,#UART0_BDL_OFFSET]
- 1112 0000030E 2100            MOVS             R1,#UART0_C1_8N1
- 1113 00000310 7081            STRB             R1,[R0,#UART0_C1_OFFSET]
- 1114 00000312 2100            MOVS             R1,#UART0_C3_NO_TXINV
- 1115 00000314 7181            STRB             R1,[R0,#UART0_C3_OFFSET]
- 1116 00000316 210F            MOVS             R1,#UART0_C4_NO_MATCH_OSR_16
- 1117 00000318 7281            STRB             R1,[R0,#UART0_C4_OFFSET]
- 1118 0000031A 2100            MOVS             R1,#UART0_C5_NO_DMA_SSR_SYNC
- 1119 0000031C 72C1            STRB             R1,[R0,#UART0_C5_OFFSET]
- 1120 0000031E 211F            MOVS             R1,#UART0_S1_CLEAR_FLAGS
- 1121 00000320 7101            STRB             R1,[R0,#UART0_S1_OFFSET]
- 1123 00000322 21C0            MOVS             R1,               #UART0_S2_NO
+ 1106 00000304         ;Init UART0 for 8N1 format at 9600 Baud,
+ 1107 00000304         ;and enable the rx interrupt
+ 1108 00000304         
+ 1109 00000304 481B            LDR              R0, =UART0_BASE
+ 1110 00000306         
+ 1111 00000306 2101            MOVS             R1,#UART0_BDH_9600
+ 1112 00000308 7001            STRB             R1,[R0,#UART0_BDH_OFFSET]
+ 1113 0000030A 2138            MOVS             R1,#UART0_BDL_9600
+ 1114 0000030C 7041            STRB             R1,[R0,#UART0_BDL_OFFSET]
+ 1115 0000030E 2100            MOVS             R1,#UART0_C1_8N1
+ 1116 00000310 7081            STRB             R1,[R0,#UART0_C1_OFFSET]
+ 1117 00000312 2100            MOVS             R1,#UART0_C3_NO_TXINV
+ 1118 00000314 7181            STRB             R1,[R0,#UART0_C3_OFFSET]
+ 1119 00000316 210F            MOVS             R1,#UART0_C4_NO_MATCH_OSR_16
+ 1120 00000318 7281            STRB             R1,[R0,#UART0_C4_OFFSET]
+ 1121 0000031A 2100            MOVS             R1,#UART0_C5_NO_DMA_SSR_SYNC
+ 1122 0000031C 72C1            STRB             R1,[R0,#UART0_C5_OFFSET]
+ 1123 0000031E 211F            MOVS             R1,#UART0_S1_CLEAR_FLAGS
+ 1124 00000320 7101            STRB             R1,[R0,#UART0_S1_OFFSET]
+ 1126 00000322 21C0            MOVS             R1,               #UART0_S2_NO
 _RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS
- 1124 00000324 7141            STRB             R1,[R0,#UART0_S2_OFFSET]
- 1125 00000326         
- 1126 00000326         ;Enable UART0 Transmitter, reciever, and rx interrupt
- 1127 00000326 212C            MOVS             R1,#UART0_C2_T_RI
- 1128 00000328 70C1            STRB             R1,[R0,#UART0_C2_OFFSET]
- 1129 0000032A         
- 1130 0000032A         ;Pop prevous R0-2 values off the stack.
- 1131 0000032A BD07            POP              {R0, R1, R2, PC}
- 1132 0000032C         
- 1133 0000032C         ;PutNumU: Print ASCII value to terminal screen
- 1134 0000032C         ;Inputs:
- 1135 0000032C         ;R0 - Character to print
- 1136 0000032C         ;Outputs:
- 1137 0000032C         ;N/A
- 1138 0000032C         ;--------------------------------------------'
- 1139 0000032C         PutNumU
- 1140 0000032C         
- 1141 0000032C         ;Divide R0 value by 10
- 1142 0000032C         ;continually printing the remainder
+ 1127 00000324 7141            STRB             R1,[R0,#UART0_S2_OFFSET]
+ 1128 00000326         
+ 1129 00000326         ;Enable UART0 Transmitter, reciever, and rx interrupt
+ 1130 00000326 212C            MOVS             R1,#UART0_C2_T_RI
+ 1131 00000328 70C1            STRB             R1,[R0,#UART0_C2_OFFSET]
+ 1132 0000032A         
+ 1133 0000032A         ;Pop prevous R0-2 values off the stack.
+ 1134 0000032A BD07            POP              {R0, R1, R2, PC}
+ 1135 0000032C         
+ 1136 0000032C         ;PutNumU: Print ASCII value to terminal screen
+ 1137 0000032C         ;Inputs:
+ 1138 0000032C         ;R0 - Character to print
+ 1139 0000032C         ;Outputs:
+ 1140 0000032C         ;N/A
+ 1141 0000032C         ;--------------------------------------------'
+ 1142 0000032C         PutNumU
  1143 0000032C         
- 1144 0000032C B507            PUSH             {R0, R1, R2, LR}
- 1145 0000032E         
- 1146 0000032E         ;Initalize Array offset to Zero
- 1147 0000032E 2200            MOVS             R2, #0
- 1148 00000330         
- 1149 00000330         DIV_NUM
- 1150 00000330         ;Num is too small to divide by 10
- 1151 00000330         ;finish subroutine
- 1152 00000330 280A            CMP              R0, #10
- 1153 00000332 DB09            BLT              COMPLETE_PUT_NUM
- 1154 00000334         
- 1155 00000334         ;Move dividend to R1, set divisor to 10
- 1156 00000334 0001            MOVS             R1, R0
+ 1144 0000032C         ;Divide R0 value by 10
+ 1145 0000032C         ;continually printing the remainder
+ 1146 0000032C         
+ 1147 0000032C B507            PUSH             {R0, R1, R2, LR}
+ 1148 0000032E         
+ 1149 0000032E         ;Initalize Array offset to Zero
+ 1150 0000032E 2200            MOVS             R2, #0
+ 1151 00000330         
+ 1152 00000330         DIV_NUM
+ 1153 00000330         ;Num is too small to divide by 10
+ 1154 00000330         ;finish subroutine
+ 1155 00000330 280A            CMP              R0, #10
+ 1156 00000332 DB09            BLT              COMPLETE_PUT_NUM
 
 
 
 ARM Macro Assembler    Page 23 Exercise 11 Multiprecision Arithmetic
 
 
- 1157 00000336 200A            MOVS             R0, #10
- 1158 00000338         
- 1159 00000338         ;R1 / R0 = R0 Remainder R1
- 1160 00000338 F7FF FF8F       BL               DIVU
- 1161 0000033C         
- 1162 0000033C         ;Print remainder stored in R1
- 1163 0000033C B401            PUSH             {R0}
- 1164 0000033E 4810            LDR              R0, =StringReversal
- 1165 00000340         
- 1166 00000340 5481            STRB             R1, [R0, R2]
- 1167 00000342 1C52            ADDS             R2, R2, #1
- 1168 00000344         
- 1169 00000344 BC01            POP              {R0}
- 1170 00000346         
- 1171 00000346         ;repeat until num is no longer divisible by 10
- 1172 00000346 E7F3            B                DIV_NUM
- 1173 00000348         
- 1174 00000348         COMPLETE_PUT_NUM
- 1175 00000348         
- 1176 00000348         ;Convert to ASCII Value
- 1177 00000348 3030            ADDS             R0, R0, #'0'
- 1178 0000034A F7FF FF35       BL               PutChar
- 1179 0000034E         
- 1180 0000034E         ;TODO: Check if this works
- 1181 0000034E 1E52            SUBS             R2, R2, #1
- 1182 00000350         
- 1183 00000350         PRINT_CHAR
- 1184 00000350         ;Iterate over array and print
- 1185 00000350 480B            LDR              R0, =StringReversal
- 1186 00000352         
- 1187 00000352 2A00            CMP              R2, #0
- 1188 00000354 DB06            BLT              END_PUTNUM
- 1189 00000356         
- 1190 00000356 5C81            LDRB             R1, [R0, R2]
- 1191 00000358 0008            MOVS             R0, R1
- 1192 0000035A         
- 1193 0000035A         ;Convert to ASCII Character and Print
- 1194 0000035A 3030            ADDS             R0, R0, #'0'
- 1195 0000035C F7FF FF2C       BL               PutChar
- 1196 00000360         
- 1197 00000360 1E52            SUBS             R2, R2, #1
- 1198 00000362         
- 1199 00000362 E7F5            B                PRINT_CHAR
- 1200 00000364         
- 1201 00000364         END_PUTNUM
- 1202 00000364         ;restore previous values to register and return
- 1203 00000364 BD07            POP              {R0, R1, R2, PC}
- 1204 00000366         
- 1205 00000366         ;-------------------------------------------------------
+ 1157 00000334         
+ 1158 00000334         ;Move dividend to R1, set divisor to 10
+ 1159 00000334 0001            MOVS             R1, R0
+ 1160 00000336 200A            MOVS             R0, #10
+ 1161 00000338         
+ 1162 00000338         ;R1 / R0 = R0 Remainder R1
+ 1163 00000338 F7FF FF8F       BL               DIVU
+ 1164 0000033C         
+ 1165 0000033C         ;Print remainder stored in R1
+ 1166 0000033C B401            PUSH             {R0}
+ 1167 0000033E 4810            LDR              R0, =StringReversal
+ 1168 00000340         
+ 1169 00000340 5481            STRB             R1, [R0, R2]
+ 1170 00000342 1C52            ADDS             R2, R2, #1
+ 1171 00000344         
+ 1172 00000344 BC01            POP              {R0}
+ 1173 00000346         
+ 1174 00000346         ;repeat until num is no longer divisible by 10
+ 1175 00000346 E7F3            B                DIV_NUM
+ 1176 00000348         
+ 1177 00000348         COMPLETE_PUT_NUM
+ 1178 00000348         
+ 1179 00000348         ;Convert to ASCII Value
+ 1180 00000348 3030            ADDS             R0, R0, #'0'
+ 1181 0000034A F7FF FFFE       BL               PutChar
+ 1182 0000034E         
+ 1183 0000034E         ;TODO: Check if this works
+ 1184 0000034E 1E52            SUBS             R2, R2, #1
+ 1185 00000350         
+ 1186 00000350         PRINT_CHAR
+ 1187 00000350         ;Iterate over array and print
+ 1188 00000350 480B            LDR              R0, =StringReversal
+ 1189 00000352         
+ 1190 00000352 2A00            CMP              R2, #0
+ 1191 00000354 DB06            BLT              END_PUTNUM
+ 1192 00000356         
+ 1193 00000356 5C81            LDRB             R1, [R0, R2]
+ 1194 00000358 0008            MOVS             R0, R1
+ 1195 0000035A         
+ 1196 0000035A         ;Convert to ASCII Character and Print
+ 1197 0000035A 3030            ADDS             R0, R0, #'0'
+ 1198 0000035C F7FF FFFE       BL               PutChar
+ 1199 00000360         
+ 1200 00000360 1E52            SUBS             R2, R2, #1
+ 1201 00000362         
+ 1202 00000362 E7F5            B                PRINT_CHAR
+ 1203 00000364         
+ 1204 00000364         END_PUTNUM
+ 1205 00000364         ;restore previous values to register and return
+ 1206 00000364 BD07            POP              {R0, R1, R2, PC}
+ 1207 00000366         
+ 1208 00000366         ;-------------------------------------------------------
                        ------------
- 1206 00000366         
- 1207 00000366         ;>>>>>   end subroutine code <<<<<
- 1208 00000366 00 00           ALIGN
- 1209 00000368         ;*******************************************************
+ 1209 00000366         
+ 1210 00000366         ;>>>>>   end subroutine code <<<<<
+ 1211 00000366 00 00           ALIGN
+ 1212 00000368         ;*******************************************************
                        *********
- 1210 00000368         ;Constants
- 1211 00000368 00000000 
-              00000000 
-              00000000 
+ 1213 00000368         ;Constants
 
 
 
 ARM Macro Assembler    Page 24 Exercise 11 Multiprecision Arithmetic
 
 
+ 1214 00000368 00000000 
+              00000000 
+              00000000 
               4006A000 
               00000000 
               00000000 
@@ -1527,8 +1530,8 @@ ARM Macro Assembler    Page 24 Exercise 11 Multiprecision Arithmetic
               E000E100 
               00000000 
               00000000         AREA             MyConst,DATA,READONLY
- 1212 00000000         ;>>>>> begin constants here <<<<<
- 1213 00000000 54 79 70 
+ 1215 00000000         ;>>>>> begin constants here <<<<<
+ 1216 00000000 54 79 70 
               65 20 61 
               20 71 75 
               65 75 65 
@@ -1542,7 +1545,7 @@ ARM Macro Assembler    Page 24 Exercise 11 Multiprecision Arithmetic
               20 73 29 
               3A 00    Prompt  DCB              "Type a queue command (d, e, h,
  p, s):", 0
- 1214 00000026 43 68 61 
+ 1217 00000026 43 68 61 
               72 61 63 
               74 65 72 
               20 74 6F 
@@ -1551,19 +1554,19 @@ ARM Macro Assembler    Page 24 Exercise 11 Multiprecision Arithmetic
               75 65 3A 
               20 00    EnqueuePrompt
                                DCB              "Character to enqueue: ", 0
- 1215 0000003D 64 20 28 
+ 1218 0000003D 64 20 28 
               64 65 71 
               75 65 75 
               65 29 2C 
-              20 65 20 
-              28 65 6E 
-              71 75 65 
 
 
 
 ARM Macro Assembler    Page 25 Exercise 11 Multiprecision Arithmetic
 
 
+              20 65 20 
+              28 65 6E 
+              71 75 65 
               75 65 29 
               2C 20 68 
               20 28 68 
@@ -1579,130 +1582,130 @@ ARM Macro Assembler    Page 25 Exercise 11 Multiprecision Arithmetic
               00       HelpString
                                DCB              "d (dequeue), e (enqueue), h (h
 elp}, p (print), s (status)", 0
- 1216 00000077 53 75 63 
+ 1219 00000077 53 75 63 
               63 65 73 
               73 3A 20 
               00       Success DCB              "Success: ", 0
- 1217 00000081 46 61 69 
+ 1220 00000081 46 61 69 
               6C 75 72 
               65 3A 20 
               00       Failure DCB              "Failure: ", 0
- 1218 0000008B 53 74 61 
+ 1221 0000008B 53 74 61 
               74 75 73 
               3A 20 00 Status  DCB              "Status: ", 0
- 1219 00000094 49 6E 3D 
+ 1222 00000094 49 6E 3D 
               20 00    In      DCB              "In= ", 0
- 1220 00000099 4F 75 74 
+ 1223 00000099 4F 75 74 
               3D 20 00 Out     DCB              "Out= ", 0
- 1221 0000009F 4E 75 6D 
+ 1224 0000009F 4E 75 6D 
               3D 20 00 Num     DCB              "Num= ", 0
- 1222 000000A5 20 20 20 
+ 1225 000000A5 20 20 20 
               00       Spaces  DCB              "   ", 0
- 1223 000000A9         
- 1224 000000A9 00 00 00        ALIGN
- 1225 000000AC         
- 1226 000000AC         ;Lookup table for pulse width modulation values
- 1227 000000AC         PWM_duty_table_0
- 1228 000000AC 70 17           DCW              PWM_DUTY_10 ;100% Range
- 1229 000000AE 82 14           DCW              ((3 * (PWM_DUTY_10 - PWM_DUTY_5
+ 1226 000000A9         
+ 1227 000000A9 00 00 00        ALIGN
+ 1228 000000AC         
+ 1229 000000AC         ;Lookup table for pulse width modulation values
+ 1230 000000AC         PWM_duty_table_0
+ 1231 000000AC 70 17           DCW              PWM_DUTY_10 ;100% Range
+ 1232 000000AE 82 14           DCW              ((3 * (PWM_DUTY_10 - PWM_DUTY_5
 )/4) + PWM_DUTY_5) 
                                                             ;75% Ramge
- 1230 000000B0 94 11           DCW              (((PWM_DUTY_10 - PWM_DUTY_5) / 
+ 1233 000000B0 94 11           DCW              (((PWM_DUTY_10 - PWM_DUTY_5) / 
 2) + PWM_DUTY_5) 
                                                             ;50% Range
- 1231 000000B2 A6 0E           DCW              (((PWM_DUTY_10 - PWM_DUTY_5) / 
+ 1234 000000B2 A6 0E           DCW              (((PWM_DUTY_10 - PWM_DUTY_5) / 
 4) + PWM_DUTY_5) 
                                                             ;25% Range
- 1232 000000B4 B8 0B           DCW              PWM_DUTY_5  ;0% Range
- 1233 000000B6         
- 1234 000000B6 00 00           ALIGN
- 1235 000000B8         
- 1236 000000B8         ;Lookup table for conversion from integer input to appro
+ 1235 000000B4 B8 0B           DCW              PWM_DUTY_5  ;0% Range
+ 1236 000000B6         
+ 1237 000000B6 00 00           ALIGN
+ 1238 000000B8         
+ 1239 000000B8         ;Lookup table for conversion from integer input to appro
                        priate value
- 1237 000000B8         DAC0_table_0
- 1238 000000B8 99 01           DCW              ((DAC0_STEPS - 1) / (SERVO_POSI
-TIONS * 2))
- 1239 000000BA CC 04           DCW              (((DAC0_STEPS - 1) * 3) / (SERV
+ 1240 000000B8         DAC0_table_0
 
 
 
 ARM Macro Assembler    Page 26 Exercise 11 Multiprecision Arithmetic
 
 
+ 1241 000000B8 99 01           DCW              ((DAC0_STEPS - 1) / (SERVO_POSI
+TIONS * 2))
+ 1242 000000BA CC 04           DCW              (((DAC0_STEPS - 1) * 3) / (SERV
 O_POSITIONS * 2))
- 1240 000000BC FF 07           DCW              (((DAC0_STEPS - 1) * 5) / (SERV
+ 1243 000000BC FF 07           DCW              (((DAC0_STEPS - 1) * 5) / (SERV
 O_POSITIONS * 2))
- 1241 000000BE 32 0B           DCW              (((DAC0_STEPS - 1) * 7) / (SERV
+ 1244 000000BE 32 0B           DCW              (((DAC0_STEPS - 1) * 7) / (SERV
 O_POSITIONS * 2))
- 1242 000000C0 65 0E           DCW              (((DAC0_STEPS - 1) * 9) / (SERV
+ 1245 000000C0 65 0E           DCW              (((DAC0_STEPS - 1) * 9) / (SERV
 O_POSITIONS * 2))
- 1243 000000C2         
- 1244 000000C2         
- 1245 000000C2         
- 1246 000000C2         ;>>>>>   end constants here <<<<<
- 1247 000000C2 00 00           ALIGN
- 1248 000000C4         ;*******************************************************
+ 1246 000000C2         
+ 1247 000000C2         
+ 1248 000000C2         
+ 1249 000000C2         ;>>>>>   end constants here <<<<<
+ 1250 000000C2 00 00           ALIGN
+ 1251 000000C4         ;*******************************************************
                        *********
- 1249 000000C4         ;Variables
- 1250 000000C4                 AREA             MyData,DATA,READWRITE
- 1251 00000000         ;>>>>> begin variables here <<<<<
- 1252 00000000         
- 1253 00000000         ;Rx Queue
- 1254 00000000         ;Memory allocated to store String input from user
- 1255 00000000 00 00 00 
+ 1252 000000C4         ;Variables
+ 1253 000000C4                 AREA             MyData,DATA,READWRITE
+ 1254 00000000         ;>>>>> begin variables here <<<<<
+ 1255 00000000         
+ 1256 00000000         ;Rx Queue
+ 1257 00000000         ;Memory allocated to store String input from user
+ 1258 00000000 00 00 00 
               00       RxQueue SPACE            Q_BUF_SZ
- 1256 00000004         ;6 Byte buffer to store queue information 
- 1257 00000004 00 00 00 
+ 1259 00000004         ;6 Byte buffer to store queue information 
+ 1260 00000004 00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 RxQueueRecord
                                SPACE            Q_REC_SZ
- 1258 00000016         
- 1259 00000016 00 00           ALIGN
- 1260 00000018         
- 1261 00000018         ;Tx Queue
- 1262 00000018         ;Memory allocated to store String input from user
- 1263 00000018 00 00 00 
+ 1261 00000016         
+ 1262 00000016 00 00           ALIGN
+ 1263 00000018         
+ 1264 00000018         ;Tx Queue
+ 1265 00000018         ;Memory allocated to store String input from user
+ 1266 00000018 00 00 00 
               00       TxQueue SPACE            Q_BUF_SZ
- 1264 0000001C         ;6 Byte buffer to store queue information 
- 1265 0000001C 00 00 00 
+ 1267 0000001C         ;6 Byte buffer to store queue information 
+ 1268 0000001C 00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 TxQueueRecord
                                SPACE            Q_REC_SZ
- 1266 0000002E         
- 1267 0000002E 00 00           ALIGN
- 1268 00000030         
- 1269 00000030         ;Memory allocated to store String input from user
- 1270 00000030 00 00 00 
+ 1269 0000002E         
+ 1270 0000002E 00 00           ALIGN
+ 1271 00000030         
+ 1272 00000030         ;Memory allocated to store String input from user
+ 1273 00000030 00 00 00 
               00       Queue   SPACE            Q_BUF_SZ
- 1271 00000034         ;6 Byte buffer to store queue information 
- 1272 00000034 00 00 00 
+ 1274 00000034         ;6 Byte buffer to store queue information 
+ 1275 00000034 00 00 00 
               00 00 00 
               00 00 00 
               00 00 00 
-              00 00 00 
-              00 00 00 QueueRecord
-                               SPACE            Q_REC_SZ
 
 
 
 ARM Macro Assembler    Page 27 Exercise 11 Multiprecision Arithmetic
 
 
- 1273 00000046         
- 1274 00000046 00 00   StringReversal
+              00 00 00 
+              00 00 00 QueueRecord
+                               SPACE            Q_REC_SZ
+ 1276 00000046         
+ 1277 00000046 00 00   StringReversal
                                SPACE            2
- 1275 00000048 00 00   APSRState
+ 1278 00000048 00 00   APSRState
                                SPACE            2
- 1276 0000004A         
- 1277 0000004A         ;>>>>>   end variables here <<<<<
- 1278 0000004A 00 00           ALIGN
- 1279 0000004C                 END
+ 1279 0000004A         
+ 1280 0000004A         ;>>>>>   end variables here <<<<<
+ 1281 0000004A 00 00           ALIGN
+ 1282 0000004C                 END
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0+ --apcs=inter
 work --depend=.\objects\exercise12_asm.d -o.\objects\exercise12_asm.o -IC:\User
 s\jmp3833\Desktop\arm-libs\Exercise-12\RTE -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\4.3.
@@ -1719,32 +1722,32 @@ ADD_COMPLETE 00000036
 
 Symbol: ADD_COMPLETE
    Definitions
-      At line 314 in file Exercise12_asm.s
+      At line 317 in file Exercise12_asm.s
    Uses
-      At line 263 in file Exercise12_asm.s
+      At line 266 in file Exercise12_asm.s
 Comment: ADD_COMPLETE used once
 ADD_TO_LEN 00000248
 
 Symbol: ADD_TO_LEN
    Definitions
-      At line 941 in file Exercise12_asm.s
+      At line 944 in file Exercise12_asm.s
    Uses
-      At line 959 in file Exercise12_asm.s
+      At line 962 in file Exercise12_asm.s
 Comment: ADD_TO_LEN used once
 ADD_WORD 0000000E
 
 Symbol: ADD_WORD
    Definitions
-      At line 261 in file Exercise12_asm.s
+      At line 264 in file Exercise12_asm.s
    Uses
-      At line 303 in file Exercise12_asm.s
-      At line 309 in file Exercise12_asm.s
+      At line 306 in file Exercise12_asm.s
+      At line 312 in file Exercise12_asm.s
 
 AddIntMultiU 00000000
 
 Symbol: AddIntMultiU
    Definitions
-      At line 229 in file Exercise12_asm.s
+      At line 232 in file Exercise12_asm.s
    Uses
       At line 223 in file Exercise12_asm.s
 Comment: AddIntMultiU used once
@@ -1752,26 +1755,26 @@ BEGIN_ENQUEUE 0000017C
 
 Symbol: BEGIN_ENQUEUE
    Definitions
-      At line 697 in file Exercise12_asm.s
+      At line 700 in file Exercise12_asm.s
    Uses
-      At line 686 in file Exercise12_asm.s
+      At line 689 in file Exercise12_asm.s
 Comment: BEGIN_ENQUEUE used once
 CHECK_OVERFLOW 00000030
 
 Symbol: CHECK_OVERFLOW
    Definitions
-      At line 305 in file Exercise12_asm.s
+      At line 308 in file Exercise12_asm.s
    Uses
-      At line 300 in file Exercise12_asm.s
+      At line 303 in file Exercise12_asm.s
 Comment: CHECK_OVERFLOW used once
 CHECK_RX_INT 000000C0
 
 Symbol: CHECK_RX_INT
    Definitions
-      At line 466 in file Exercise12_asm.s
+      At line 469 in file Exercise12_asm.s
    Uses
-      At line 429 in file Exercise12_asm.s
-      At line 438 in file Exercise12_asm.s
+      At line 432 in file Exercise12_asm.s
+      At line 441 in file Exercise12_asm.s
 
 COMPLETE_PUT_NUM 00000348
 
@@ -1783,57 +1786,57 @@ Relocatable symbols
 
 Symbol: COMPLETE_PUT_NUM
    Definitions
-      At line 1174 in file Exercise12_asm.s
+      At line 1177 in file Exercise12_asm.s
    Uses
-      At line 1153 in file Exercise12_asm.s
+      At line 1156 in file Exercise12_asm.s
 Comment: COMPLETE_PUT_NUM used once
 DEQUEUE_CLEAR_PSR 0000013E
 
 Symbol: DEQUEUE_CLEAR_PSR
    Definitions
-      At line 642 in file Exercise12_asm.s
+      At line 645 in file Exercise12_asm.s
    Uses
-      At line 634 in file Exercise12_asm.s
+      At line 637 in file Exercise12_asm.s
 Comment: DEQUEUE_CLEAR_PSR used once
 DEQUEUE_FAILURE 0000014E
 
 Symbol: DEQUEUE_FAILURE
    Definitions
-      At line 653 in file Exercise12_asm.s
+      At line 656 in file Exercise12_asm.s
    Uses
-      At line 609 in file Exercise12_asm.s
+      At line 612 in file Exercise12_asm.s
 Comment: DEQUEUE_FAILURE used once
 DISABLE_TX 000000BA
 
 Symbol: DISABLE_TX
    Definitions
-      At line 458 in file Exercise12_asm.s
+      At line 461 in file Exercise12_asm.s
    Uses
-      At line 448 in file Exercise12_asm.s
+      At line 451 in file Exercise12_asm.s
 Comment: DISABLE_TX used once
 DIVIDE_OP 00000274
 
 Symbol: DIVIDE_OP
    Definitions
-      At line 987 in file Exercise12_asm.s
+      At line 990 in file Exercise12_asm.s
    Uses
-      At line 994 in file Exercise12_asm.s
+      At line 997 in file Exercise12_asm.s
 Comment: DIVIDE_OP used once
 DIVU 0000025A
 
 Symbol: DIVU
    Definitions
-      At line 968 in file Exercise12_asm.s
+      At line 971 in file Exercise12_asm.s
    Uses
-      At line 1160 in file Exercise12_asm.s
+      At line 1163 in file Exercise12_asm.s
 Comment: DIVU used once
 DIV_NUM 00000330
 
 Symbol: DIV_NUM
    Definitions
-      At line 1149 in file Exercise12_asm.s
+      At line 1152 in file Exercise12_asm.s
    Uses
-      At line 1172 in file Exercise12_asm.s
+      At line 1175 in file Exercise12_asm.s
 Comment: DIV_NUM used once
 DeQueue 0000011A
 
@@ -1845,62 +1848,62 @@ Symbol: DeQueue
 ARM Macro Assembler    Page 3 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 595 in file Exercise12_asm.s
+      At line 598 in file Exercise12_asm.s
    Uses
-      At line 445 in file Exercise12_asm.s
-      At line 803 in file Exercise12_asm.s
+      At line 448 in file Exercise12_asm.s
+      At line 806 in file Exercise12_asm.s
 
 END_DEQUEUE 0000015C
 
 Symbol: END_DEQUEUE
    Definitions
-      At line 661 in file Exercise12_asm.s
+      At line 664 in file Exercise12_asm.s
    Uses
-      At line 651 in file Exercise12_asm.s
+      At line 654 in file Exercise12_asm.s
 Comment: END_DEQUEUE used once
 END_DIVIDE_WHILE 0000027E
 
 Symbol: END_DIVIDE_WHILE
    Definitions
-      At line 996 in file Exercise12_asm.s
+      At line 999 in file Exercise12_asm.s
    Uses
-      At line 989 in file Exercise12_asm.s
+      At line 992 in file Exercise12_asm.s
 Comment: END_DIVIDE_WHILE used once
 END_ENQUEUE 000001B4
 
 Symbol: END_ENQUEUE
    Definitions
-      At line 745 in file Exercise12_asm.s
+      At line 748 in file Exercise12_asm.s
    Uses
-      At line 695 in file Exercise12_asm.s
-      At line 731 in file Exercise12_asm.s
+      At line 698 in file Exercise12_asm.s
+      At line 734 in file Exercise12_asm.s
 
 END_GET_LEN 00000258
 
 Symbol: END_GET_LEN
    Definitions
-      At line 961 in file Exercise12_asm.s
+      At line 964 in file Exercise12_asm.s
    Uses
-      At line 945 in file Exercise12_asm.s
-      At line 952 in file Exercise12_asm.s
+      At line 948 in file Exercise12_asm.s
+      At line 955 in file Exercise12_asm.s
 
 END_GET_STR 00000206
 
 Symbol: END_GET_STR
    Definitions
-      At line 857 in file Exercise12_asm.s
+      At line 860 in file Exercise12_asm.s
    Uses
-      At line 834 in file Exercise12_asm.s
+      At line 837 in file Exercise12_asm.s
 Comment: END_GET_STR used once
 END_ISR 000000D8
 
 Symbol: END_ISR
    Definitions
-      At line 491 in file Exercise12_asm.s
+      At line 494 in file Exercise12_asm.s
    Uses
-      At line 456 in file Exercise12_asm.s
-      At line 464 in file Exercise12_asm.s
-      At line 475 in file Exercise12_asm.s
+      At line 459 in file Exercise12_asm.s
+      At line 467 in file Exercise12_asm.s
+      At line 478 in file Exercise12_asm.s
 
 END_PRINT_HEX 00000106
 
@@ -1912,70 +1915,71 @@ Relocatable symbols
 
 Symbol: END_PRINT_HEX
    Definitions
-      At line 554 in file Exercise12_asm.s
+      At line 557 in file Exercise12_asm.s
    Uses
-      At line 517 in file Exercise12_asm.s
+      At line 520 in file Exercise12_asm.s
 Comment: END_PRINT_HEX used once
 END_PUTNUM 00000364
 
 Symbol: END_PUTNUM
    Definitions
-      At line 1201 in file Exercise12_asm.s
+      At line 1204 in file Exercise12_asm.s
    Uses
-      At line 1188 in file Exercise12_asm.s
+      At line 1191 in file Exercise12_asm.s
 Comment: END_PUTNUM used once
 END_PUT_STR 0000023E
 
 Symbol: END_PUT_STR
    Definitions
-      At line 921 in file Exercise12_asm.s
+      At line 924 in file Exercise12_asm.s
    Uses
-      At line 903 in file Exercise12_asm.s
+      At line 906 in file Exercise12_asm.s
 Comment: END_PUT_STR used once
 END_SET_SUB 0000007E
 
 Symbol: END_SET_SUB
    Definitions
-      At line 377 in file Exercise12_asm.s
+      At line 380 in file Exercise12_asm.s
    Uses
-      At line 368 in file Exercise12_asm.s
+      At line 371 in file Exercise12_asm.s
 Comment: END_SET_SUB used once
 END_SUB 0000003E
 
 Symbol: END_SUB
    Definitions
-      At line 325 in file Exercise12_asm.s
+      At line 328 in file Exercise12_asm.s
    Uses
-      At line 319 in file Exercise12_asm.s
+      At line 322 in file Exercise12_asm.s
 Comment: END_SUB used once
 EnQueue 00000160
 
 Symbol: EnQueue
    Definitions
-      At line 666 in file Exercise12_asm.s
+      At line 669 in file Exercise12_asm.s
    Uses
-      At line 486 in file Exercise12_asm.s
-      At line 770 in file Exercise12_asm.s
+      At line 489 in file Exercise12_asm.s
+      At line 773 in file Exercise12_asm.s
 
 GetChar 000001CE
 
 Symbol: GetChar
    Definitions
-      At line 792 in file Exercise12_asm.s
+      At line 795 in file Exercise12_asm.s
    Uses
-      At line 828 in file Exercise12_asm.s
-Comment: GetChar used once
+      At line 224 in file Exercise12_asm.s
+      At line 831 in file Exercise12_asm.s
+
 GetStringSB 000001DE
 
 Symbol: GetStringSB
-   Definitions
 
 
 
 ARM Macro Assembler    Page 5 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 818 in file Exercise12_asm.s
+   Definitions
+      At line 821 in file Exercise12_asm.s
    Uses
       At line 220 in file Exercise12_asm.s
 Comment: GetStringSB used once
@@ -1983,24 +1987,24 @@ HEX_PRINT_LOOP 000000E0
 
 Symbol: HEX_PRINT_LOOP
    Definitions
-      At line 513 in file Exercise12_asm.s
+      At line 516 in file Exercise12_asm.s
    Uses
-      At line 552 in file Exercise12_asm.s
+      At line 555 in file Exercise12_asm.s
 Comment: HEX_PRINT_LOOP used once
 InitQueue 00000108
 
 Symbol: InitQueue
    Definitions
-      At line 559 in file Exercise12_asm.s
+      At line 562 in file Exercise12_asm.s
    Uses
-      At line 1024 in file Exercise12_asm.s
-      At line 1030 in file Exercise12_asm.s
+      At line 1027 in file Exercise12_asm.s
+      At line 1033 in file Exercise12_asm.s
 
 Init_UART0_IRQ 00000292
 
 Symbol: Init_UART0_IRQ
    Definitions
-      At line 1011 in file Exercise12_asm.s
+      At line 1014 in file Exercise12_asm.s
    Uses
       At line 222 in file Exercise12_asm.s
 Comment: Init_UART0_IRQ used once
@@ -2008,9 +2012,9 @@ LengthStringSB 00000240
 
 Symbol: LengthStringSB
    Definitions
-      At line 933 in file Exercise12_asm.s
+      At line 936 in file Exercise12_asm.s
    Uses
-      At line 895 in file Exercise12_asm.s
+      At line 898 in file Exercise12_asm.s
 Comment: LengthStringSB used once
 MyCode 00000000
 
@@ -2024,45 +2028,45 @@ NO_ERR 00000272
 
 Symbol: NO_ERR
    Definitions
-      At line 984 in file Exercise12_asm.s
+      At line 987 in file Exercise12_asm.s
    Uses
-      At line 973 in file Exercise12_asm.s
+      At line 976 in file Exercise12_asm.s
 Comment: NO_ERR used once
 PRINT_CHAR 00000350
 
 Symbol: PRINT_CHAR
    Definitions
-      At line 1183 in file Exercise12_asm.s
-   Uses
+      At line 1186 in file Exercise12_asm.s
 
 
 
 ARM Macro Assembler    Page 6 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 1199 in file Exercise12_asm.s
+   Uses
+      At line 1202 in file Exercise12_asm.s
 Comment: PRINT_CHAR used once
 PRINT_HX 000000F6
 
 Symbol: PRINT_HX
    Definitions
-      At line 541 in file Exercise12_asm.s
+      At line 544 in file Exercise12_asm.s
    Uses
-      At line 533 in file Exercise12_asm.s
+      At line 536 in file Exercise12_asm.s
 Comment: PRINT_HX used once
 PRINT_LETTER 000000F4
 
 Symbol: PRINT_LETTER
    Definitions
-      At line 535 in file Exercise12_asm.s
+      At line 538 in file Exercise12_asm.s
    Uses
-      At line 529 in file Exercise12_asm.s
+      At line 532 in file Exercise12_asm.s
 Comment: PRINT_LETTER used once
 PrintCharLF 0000020C
 
 Symbol: PrintCharLF
    Definitions
-      At line 867 in file Exercise12_asm.s
+      At line 870 in file Exercise12_asm.s
    Uses
       None
 Comment: PrintCharLF unused
@@ -2070,44 +2074,45 @@ PutChar 000001B8
 
 Symbol: PutChar
    Definitions
-      At line 757 in file Exercise12_asm.s
+      At line 760 in file Exercise12_asm.s
    Uses
-      At line 546 in file Exercise12_asm.s
-      At line 844 in file Exercise12_asm.s
-      At line 874 in file Exercise12_asm.s
-      At line 878 in file Exercise12_asm.s
+      At line 225 in file Exercise12_asm.s
+      At line 549 in file Exercise12_asm.s
+      At line 847 in file Exercise12_asm.s
+      At line 877 in file Exercise12_asm.s
       At line 881 in file Exercise12_asm.s
-      At line 911 in file Exercise12_asm.s
-      At line 1178 in file Exercise12_asm.s
-      At line 1195 in file Exercise12_asm.s
+      At line 884 in file Exercise12_asm.s
+      At line 914 in file Exercise12_asm.s
+      At line 1181 in file Exercise12_asm.s
+      At line 1198 in file Exercise12_asm.s
 
 PutNumHex 000000DC
 
 Symbol: PutNumHex
    Definitions
-      At line 501 in file Exercise12_asm.s
+      At line 504 in file Exercise12_asm.s
    Uses
-      None
-Comment: PutNumHex unused
+      At line 226 in file Exercise12_asm.s
+Comment: PutNumHex used once
 PutNumU 0000032C
 
 Symbol: PutNumU
    Definitions
-      At line 1139 in file Exercise12_asm.s
+      At line 1142 in file Exercise12_asm.s
    Uses
-      At line 398 in file Exercise12_asm.s
+      At line 401 in file Exercise12_asm.s
 Comment: PutNumU used once
-PutNumUB 00000082
-
 
 
 
 ARM Macro Assembler    Page 7 Alphabetic symbol ordering
 Relocatable symbols
 
+PutNumUB 00000082
+
 Symbol: PutNumUB
    Definitions
-      At line 383 in file Exercise12_asm.s
+      At line 386 in file Exercise12_asm.s
    Uses
       None
 Comment: PutNumUB unused
@@ -2115,7 +2120,7 @@ PutStringSB 00000220
 
 Symbol: PutStringSB
    Definitions
-      At line 889 in file Exercise12_asm.s
+      At line 892 in file Exercise12_asm.s
    Uses
       At line 221 in file Exercise12_asm.s
 Comment: PutStringSB used once
@@ -2123,134 +2128,134 @@ QUEUE_FULL 0000016C
 
 Symbol: QUEUE_FULL
    Definitions
-      At line 688 in file Exercise12_asm.s
+      At line 691 in file Exercise12_asm.s
    Uses
-      At line 685 in file Exercise12_asm.s
+      At line 688 in file Exercise12_asm.s
 Comment: QUEUE_FULL used once
 READ_CHAR 00000228
 
 Symbol: READ_CHAR
    Definitions
-      At line 898 in file Exercise12_asm.s
+      At line 901 in file Exercise12_asm.s
    Uses
-      At line 919 in file Exercise12_asm.s
+      At line 922 in file Exercise12_asm.s
 Comment: READ_CHAR used once
 REPEAT_DEQ 000001D2
 
 Symbol: REPEAT_DEQ
    Definitions
-      At line 797 in file Exercise12_asm.s
+      At line 800 in file Exercise12_asm.s
    Uses
-      At line 808 in file Exercise12_asm.s
+      At line 811 in file Exercise12_asm.s
 Comment: REPEAT_DEQ used once
 REPEAT_ENQ 000001BA
 
 Symbol: REPEAT_ENQ
    Definitions
-      At line 760 in file Exercise12_asm.s
+      At line 763 in file Exercise12_asm.s
    Uses
-      At line 775 in file Exercise12_asm.s
+      At line 778 in file Exercise12_asm.s
 Comment: REPEAT_ENQ used once
 RETURN 0000028E
 
 Symbol: RETURN
    Definitions
-      At line 1005 in file Exercise12_asm.s
+      At line 1008 in file Exercise12_asm.s
    Uses
-      At line 983 in file Exercise12_asm.s
+      At line 986 in file Exercise12_asm.s
 Comment: RETURN used once
 SET_C 00000262
 
 Symbol: SET_C
-   Definitions
-      At line 975 in file Exercise12_asm.s
 
 
 
 ARM Macro Assembler    Page 8 Alphabetic symbol ordering
 Relocatable symbols
 
+   Definitions
+      At line 978 in file Exercise12_asm.s
    Uses
-      At line 972 in file Exercise12_asm.s
+      At line 975 in file Exercise12_asm.s
 Comment: SET_C used once
 SET_C_APSR 00000070
 
 Symbol: SET_C_APSR
    Definitions
-      At line 370 in file Exercise12_asm.s
+      At line 373 in file Exercise12_asm.s
    Uses
-      At line 359 in file Exercise12_asm.s
+      At line 362 in file Exercise12_asm.s
 Comment: SET_C_APSR used once
 SET_SUCCESS 0000003C
 
 Symbol: SET_SUCCESS
    Definitions
-      At line 321 in file Exercise12_asm.s
+      At line 324 in file Exercise12_asm.s
    Uses
-      At line 318 in file Exercise12_asm.s
+      At line 321 in file Exercise12_asm.s
 Comment: SET_SUCCESS used once
 SetAPSRState 00000056
 
 Symbol: SetAPSRState
    Definitions
-      At line 350 in file Exercise12_asm.s
+      At line 353 in file Exercise12_asm.s
    Uses
-      At line 283 in file Exercise12_asm.s
+      At line 286 in file Exercise12_asm.s
 Comment: SetAPSRState used once
 TAKE_INPUT 000001E2
 
 Symbol: TAKE_INPUT
    Definitions
-      At line 824 in file Exercise12_asm.s
+      At line 827 in file Exercise12_asm.s
    Uses
-      At line 839 in file Exercise12_asm.s
-      At line 855 in file Exercise12_asm.s
+      At line 842 in file Exercise12_asm.s
+      At line 858 in file Exercise12_asm.s
 
 TX_ENABLED 000000A0
 
 Symbol: TX_ENABLED
    Definitions
-      At line 431 in file Exercise12_asm.s
+      At line 434 in file Exercise12_asm.s
    Uses
-      At line 426 in file Exercise12_asm.s
+      At line 429 in file Exercise12_asm.s
 Comment: TX_ENABLED used once
 UART0_IRQHandler 0000008E
 
 Symbol: UART0_IRQHandler
    Definitions
-      At line 410 in file Exercise12_asm.s
+      At line 413 in file Exercise12_asm.s
    Uses
-      At line 226 in file Exercise12_asm.s
+      At line 229 in file Exercise12_asm.s
 Comment: UART0_IRQHandler used once
 WRAP_BUFFER 0000013A
 
 Symbol: WRAP_BUFFER
    Definitions
-      At line 636 in file Exercise12_asm.s
-   Uses
-      At line 633 in file Exercise12_asm.s
+      At line 639 in file Exercise12_asm.s
 
 
 
 ARM Macro Assembler    Page 9 Alphabetic symbol ordering
 Relocatable symbols
 
+   Uses
+      At line 636 in file Exercise12_asm.s
 Comment: WRAP_BUFFER used once
 WRAP_ENQUEUE 000001A2
 
 Symbol: WRAP_ENQUEUE
    Definitions
-      At line 733 in file Exercise12_asm.s
+      At line 736 in file Exercise12_asm.s
    Uses
-      At line 722 in file Exercise12_asm.s
+      At line 725 in file Exercise12_asm.s
 Comment: WRAP_ENQUEUE used once
 WriteAPSRC 00000040
 
 Symbol: WriteAPSRC
    Definitions
-      At line 329 in file Exercise12_asm.s
+      At line 332 in file Exercise12_asm.s
    Uses
-      At line 289 in file Exercise12_asm.s
+      At line 292 in file Exercise12_asm.s
 Comment: WriteAPSRC used once
 59 symbols
 
@@ -2263,7 +2268,7 @@ DAC0_table_0 000000B8
 
 Symbol: DAC0_table_0
    Definitions
-      At line 1237 in file Exercise12_asm.s
+      At line 1240 in file Exercise12_asm.s
    Uses
       At line 218 in file Exercise12_asm.s
 Comment: DAC0_table_0 used once
@@ -2271,7 +2276,7 @@ EnqueuePrompt 00000026
 
 Symbol: EnqueuePrompt
    Definitions
-      At line 1214 in file Exercise12_asm.s
+      At line 1217 in file Exercise12_asm.s
    Uses
       None
 Comment: EnqueuePrompt unused
@@ -2279,7 +2284,7 @@ Failure 00000081
 
 Symbol: Failure
    Definitions
-      At line 1217 in file Exercise12_asm.s
+      At line 1220 in file Exercise12_asm.s
    Uses
       None
 Comment: Failure unused
@@ -2287,7 +2292,7 @@ HelpString 0000003D
 
 Symbol: HelpString
    Definitions
-      At line 1215 in file Exercise12_asm.s
+      At line 1218 in file Exercise12_asm.s
    Uses
       None
 Comment: HelpString unused
@@ -2295,7 +2300,7 @@ In 00000094
 
 Symbol: In
    Definitions
-      At line 1219 in file Exercise12_asm.s
+      At line 1222 in file Exercise12_asm.s
    Uses
       None
 Comment: In unused
@@ -2303,7 +2308,7 @@ MyConst 00000000
 
 Symbol: MyConst
    Definitions
-      At line 1211 in file Exercise12_asm.s
+      At line 1214 in file Exercise12_asm.s
    Uses
       None
 Comment: MyConst unused
@@ -2311,7 +2316,7 @@ Num 0000009F
 
 Symbol: Num
    Definitions
-      At line 1221 in file Exercise12_asm.s
+      At line 1224 in file Exercise12_asm.s
    Uses
       None
 Comment: Num unused
@@ -2325,7 +2330,7 @@ ARM Macro Assembler    Page 2 Alphabetic symbol ordering
 Relocatable symbols
 
    Definitions
-      At line 1220 in file Exercise12_asm.s
+      At line 1223 in file Exercise12_asm.s
    Uses
       None
 Comment: Out unused
@@ -2333,7 +2338,7 @@ PWM_duty_table_0 000000AC
 
 Symbol: PWM_duty_table_0
    Definitions
-      At line 1227 in file Exercise12_asm.s
+      At line 1230 in file Exercise12_asm.s
    Uses
       At line 217 in file Exercise12_asm.s
 Comment: PWM_duty_table_0 used once
@@ -2341,7 +2346,7 @@ Prompt 00000000
 
 Symbol: Prompt
    Definitions
-      At line 1213 in file Exercise12_asm.s
+      At line 1216 in file Exercise12_asm.s
    Uses
       None
 Comment: Prompt unused
@@ -2349,7 +2354,7 @@ Spaces 000000A5
 
 Symbol: Spaces
    Definitions
-      At line 1222 in file Exercise12_asm.s
+      At line 1225 in file Exercise12_asm.s
    Uses
       None
 Comment: Spaces unused
@@ -2357,7 +2362,7 @@ Status 0000008B
 
 Symbol: Status
    Definitions
-      At line 1218 in file Exercise12_asm.s
+      At line 1221 in file Exercise12_asm.s
    Uses
       None
 Comment: Status unused
@@ -2365,7 +2370,7 @@ Success 00000077
 
 Symbol: Success
    Definitions
-      At line 1216 in file Exercise12_asm.s
+      At line 1219 in file Exercise12_asm.s
    Uses
       None
 Comment: Success unused
@@ -2380,17 +2385,17 @@ APSRState 00000048
 
 Symbol: APSRState
    Definitions
-      At line 1275 in file Exercise12_asm.s
+      At line 1278 in file Exercise12_asm.s
    Uses
-      At line 253 in file Exercise12_asm.s
-      At line 342 in file Exercise12_asm.s
-      At line 354 in file Exercise12_asm.s
+      At line 256 in file Exercise12_asm.s
+      At line 345 in file Exercise12_asm.s
+      At line 357 in file Exercise12_asm.s
 
 MyData 00000000
 
 Symbol: MyData
    Definitions
-      At line 1250 in file Exercise12_asm.s
+      At line 1253 in file Exercise12_asm.s
    Uses
       None
 Comment: MyData unused
@@ -2398,7 +2403,7 @@ Queue 00000030
 
 Symbol: Queue
    Definitions
-      At line 1270 in file Exercise12_asm.s
+      At line 1273 in file Exercise12_asm.s
    Uses
       None
 Comment: Queue unused
@@ -2406,7 +2411,7 @@ QueueRecord 00000034
 
 Symbol: QueueRecord
    Definitions
-      At line 1272 in file Exercise12_asm.s
+      At line 1275 in file Exercise12_asm.s
    Uses
       None
 Comment: QueueRecord unused
@@ -2414,52 +2419,52 @@ RxQueue 00000000
 
 Symbol: RxQueue
    Definitions
-      At line 1255 in file Exercise12_asm.s
+      At line 1258 in file Exercise12_asm.s
    Uses
-      At line 1021 in file Exercise12_asm.s
+      At line 1024 in file Exercise12_asm.s
 Comment: RxQueue used once
 RxQueueRecord 00000004
 
 Symbol: RxQueueRecord
    Definitions
-      At line 1257 in file Exercise12_asm.s
+      At line 1260 in file Exercise12_asm.s
    Uses
-      At line 483 in file Exercise12_asm.s
-      At line 795 in file Exercise12_asm.s
-      At line 1020 in file Exercise12_asm.s
+      At line 486 in file Exercise12_asm.s
+      At line 798 in file Exercise12_asm.s
+      At line 1023 in file Exercise12_asm.s
 
 StringReversal 00000046
 
 Symbol: StringReversal
    Definitions
-      At line 1274 in file Exercise12_asm.s
+      At line 1277 in file Exercise12_asm.s
    Uses
-      At line 1164 in file Exercise12_asm.s
+      At line 1167 in file Exercise12_asm.s
 
 
 
 ARM Macro Assembler    Page 2 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 1185 in file Exercise12_asm.s
+      At line 1188 in file Exercise12_asm.s
 
 TxQueue 00000018
 
 Symbol: TxQueue
    Definitions
-      At line 1263 in file Exercise12_asm.s
+      At line 1266 in file Exercise12_asm.s
    Uses
-      At line 1027 in file Exercise12_asm.s
+      At line 1030 in file Exercise12_asm.s
 Comment: TxQueue used once
 TxQueueRecord 0000001C
 
 Symbol: TxQueueRecord
    Definitions
-      At line 1265 in file Exercise12_asm.s
+      At line 1268 in file Exercise12_asm.s
    Uses
-      At line 442 in file Exercise12_asm.s
-      At line 763 in file Exercise12_asm.s
-      At line 1026 in file Exercise12_asm.s
+      At line 445 in file Exercise12_asm.s
+      At line 766 in file Exercise12_asm.s
+      At line 1029 in file Exercise12_asm.s
 
 9 symbols
 
@@ -3890,15 +3895,15 @@ Symbol: BUF_PAST
    Definitions
       At line 196 in file Exercise12_asm.s
    Uses
-      At line 581 in file Exercise12_asm.s
-      At line 631 in file Exercise12_asm.s
+      At line 584 in file Exercise12_asm.s
+      At line 634 in file Exercise12_asm.s
 
 
 
 ARM Macro Assembler    Page 23 Alphabetic symbol ordering
 Absolute symbols
 
-      At line 719 in file Exercise12_asm.s
+      At line 722 in file Exercise12_asm.s
 
 BUF_SIZE 00000010
 
@@ -3906,8 +3911,8 @@ Symbol: BUF_SIZE
    Definitions
       At line 197 in file Exercise12_asm.s
    Uses
-      At line 584 in file Exercise12_asm.s
-      At line 683 in file Exercise12_asm.s
+      At line 587 in file Exercise12_asm.s
+      At line 686 in file Exercise12_asm.s
 
 BUF_START 00000008
 
@@ -3915,9 +3920,9 @@ Symbol: BUF_START
    Definitions
       At line 195 in file Exercise12_asm.s
    Uses
-      At line 577 in file Exercise12_asm.s
-      At line 639 in file Exercise12_asm.s
-      At line 735 in file Exercise12_asm.s
+      At line 580 in file Exercise12_asm.s
+      At line 642 in file Exercise12_asm.s
+      At line 738 in file Exercise12_asm.s
 
 BYTE_BITS 00000008
 
@@ -4242,11 +4247,11 @@ Symbol: DAC0_STEPS
    Definitions
       At line 209 in file Exercise12_asm.s
    Uses
-      At line 1238 in file Exercise12_asm.s
-      At line 1239 in file Exercise12_asm.s
-      At line 1240 in file Exercise12_asm.s
       At line 1241 in file Exercise12_asm.s
       At line 1242 in file Exercise12_asm.s
+      At line 1243 in file Exercise12_asm.s
+      At line 1244 in file Exercise12_asm.s
+      At line 1245 in file Exercise12_asm.s
 
 DAC0_Vector 00000029
 
@@ -5930,11 +5935,11 @@ Symbol: IN_PTR
    Definitions
       At line 193 in file Exercise12_asm.s
    Uses
-      At line 570 in file Exercise12_asm.s
-      At line 702 in file Exercise12_asm.s
-      At line 708 in file Exercise12_asm.s
-      At line 718 in file Exercise12_asm.s
-      At line 736 in file Exercise12_asm.s
+      At line 573 in file Exercise12_asm.s
+      At line 705 in file Exercise12_asm.s
+      At line 711 in file Exercise12_asm.s
+      At line 721 in file Exercise12_asm.s
+      At line 739 in file Exercise12_asm.s
 
 IPSR_EXCEPTION_MASK 0000003F
 
@@ -6120,7 +6125,7 @@ Symbol: MAX_STRING
    Definitions
       At line 191 in file Exercise12_asm.s
    Uses
-      At line 937 in file Exercise12_asm.s
+      At line 940 in file Exercise12_asm.s
 Comment: MAX_STRING used once
 MCG_BASE 40064000
 
@@ -6871,13 +6876,13 @@ Symbol: NUM_ENQD
    Definitions
       At line 198 in file Exercise12_asm.s
    Uses
-      At line 589 in file Exercise12_asm.s
-      At line 607 in file Exercise12_asm.s
-      At line 620 in file Exercise12_asm.s
-      At line 622 in file Exercise12_asm.s
-      At line 682 in file Exercise12_asm.s
-      At line 711 in file Exercise12_asm.s
-      At line 713 in file Exercise12_asm.s
+      At line 592 in file Exercise12_asm.s
+      At line 610 in file Exercise12_asm.s
+      At line 623 in file Exercise12_asm.s
+      At line 625 in file Exercise12_asm.s
+      At line 685 in file Exercise12_asm.s
+      At line 714 in file Exercise12_asm.s
+      At line 716 in file Exercise12_asm.s
 
 NVIC_BASE E000E100
 
@@ -6934,7 +6939,7 @@ Symbol: NVIC_ICPR
    Definitions
       At line 978 in file lab_MKL46Z4.s
    Uses
-      At line 1094 in file Exercise12_asm.s
+      At line 1097 in file Exercise12_asm.s
 Comment: NVIC_ICPR used once
 NVIC_ICPR_OFFSET 00000180
 
@@ -6956,7 +6961,7 @@ Absolute symbols
    Definitions
       At line 33 in file Exercise12_asm.s
    Uses
-      At line 1095 in file Exercise12_asm.s
+      At line 1098 in file Exercise12_asm.s
 Comment: NVIC_ICPR_UART0_MASK used once
 NVIC_IPR0 E000E400
 
@@ -7128,7 +7133,7 @@ Symbol: NVIC_IPR_UART0_MASK
    Definitions
       At line 38 in file Exercise12_asm.s
    Uses
-      At line 1080 in file Exercise12_asm.s
+      At line 1083 in file Exercise12_asm.s
 Comment: NVIC_IPR_UART0_MASK used once
 NVIC_IPR_UART0_PRI_3 000000C0
 
@@ -7136,7 +7141,7 @@ Symbol: NVIC_IPR_UART0_PRI_3
    Definitions
       At line 39 in file Exercise12_asm.s
    Uses
-      At line 1082 in file Exercise12_asm.s
+      At line 1085 in file Exercise12_asm.s
 Comment: NVIC_IPR_UART0_PRI_3 used once
 NVIC_ISER E000E100
 
@@ -7150,7 +7155,7 @@ Absolute symbols
 
       At line 975 in file lab_MKL46Z4.s
    Uses
-      At line 1099 in file Exercise12_asm.s
+      At line 1102 in file Exercise12_asm.s
 Comment: NVIC_ISER used once
 NVIC_ISER_OFFSET 00000000
 
@@ -7166,7 +7171,7 @@ Symbol: NVIC_ISER_UART0_MASK
    Definitions
       At line 46 in file Exercise12_asm.s
    Uses
-      At line 1100 in file Exercise12_asm.s
+      At line 1103 in file Exercise12_asm.s
 Comment: NVIC_ISER_UART0_MASK used once
 NVIC_ISPR E000E200
 
@@ -7190,11 +7195,11 @@ Symbol: OUT_PTR
    Definitions
       At line 194 in file Exercise12_asm.s
    Uses
-      At line 574 in file Exercise12_asm.s
-      At line 613 in file Exercise12_asm.s
-      At line 625 in file Exercise12_asm.s
-      At line 627 in file Exercise12_asm.s
-      At line 640 in file Exercise12_asm.s
+      At line 577 in file Exercise12_asm.s
+      At line 616 in file Exercise12_asm.s
+      At line 628 in file Exercise12_asm.s
+      At line 630 in file Exercise12_asm.s
+      At line 643 in file Exercise12_asm.s
 
 PIT_BASE 40037000
 
@@ -7810,7 +7815,7 @@ Symbol: PORTA_PCR1
    Definitions
       At line 1360 in file lab_MKL46Z4.s
    Uses
-      At line 1059 in file Exercise12_asm.s
+      At line 1062 in file Exercise12_asm.s
 Comment: PORTA_PCR1 used once
 PORTA_PCR10 40049028
 
@@ -8004,7 +8009,7 @@ Symbol: PORTA_PCR2
    Definitions
       At line 1361 in file lab_MKL46Z4.s
    Uses
-      At line 1063 in file Exercise12_asm.s
+      At line 1066 in file Exercise12_asm.s
 Comment: PORTA_PCR2 used once
 PORTA_PCR20 40049050
 
@@ -11266,7 +11271,7 @@ Symbol: PORT_PCR_SET_PTA1_UART0_RX
    Definitions
       At line 54 in file Exercise12_asm.s
    Uses
-      At line 1060 in file Exercise12_asm.s
+      At line 1063 in file Exercise12_asm.s
 Comment: PORT_PCR_SET_PTA1_UART0_RX used once
 PORT_PCR_SET_PTA2_UART0_TX 01000200
 
@@ -11274,7 +11279,7 @@ Symbol: PORT_PCR_SET_PTA2_UART0_TX
    Definitions
       At line 56 in file Exercise12_asm.s
    Uses
-      At line 1064 in file Exercise12_asm.s
+      At line 1067 in file Exercise12_asm.s
 Comment: PORT_PCR_SET_PTA2_UART0_TX used once
 PORT_PCR_SRE_MASK 00000004
 
@@ -11406,10 +11411,10 @@ Symbol: PWM_DUTY_10
    Definitions
       At line 206 in file Exercise12_asm.s
    Uses
-      At line 1228 in file Exercise12_asm.s
-      At line 1229 in file Exercise12_asm.s
-      At line 1230 in file Exercise12_asm.s
       At line 1231 in file Exercise12_asm.s
+      At line 1232 in file Exercise12_asm.s
+      At line 1233 in file Exercise12_asm.s
+      At line 1234 in file Exercise12_asm.s
 
 PWM_DUTY_5 00000BB8
 
@@ -11417,13 +11422,13 @@ Symbol: PWM_DUTY_5
    Definitions
       At line 205 in file Exercise12_asm.s
    Uses
-      At line 1229 in file Exercise12_asm.s
-      At line 1229 in file Exercise12_asm.s
-      At line 1230 in file Exercise12_asm.s
-      At line 1230 in file Exercise12_asm.s
-      At line 1231 in file Exercise12_asm.s
-      At line 1231 in file Exercise12_asm.s
       At line 1232 in file Exercise12_asm.s
+      At line 1232 in file Exercise12_asm.s
+      At line 1233 in file Exercise12_asm.s
+      At line 1233 in file Exercise12_asm.s
+      At line 1234 in file Exercise12_asm.s
+      At line 1234 in file Exercise12_asm.s
+      At line 1235 in file Exercise12_asm.s
 
 PWM_PERIOD_20ms 0000EA60
 
@@ -11453,12 +11458,12 @@ Symbol: Q_BUF_SZ
    Definitions
       At line 187 in file Exercise12_asm.s
    Uses
-      At line 443 in file Exercise12_asm.s
-      At line 1022 in file Exercise12_asm.s
-      At line 1028 in file Exercise12_asm.s
-      At line 1255 in file Exercise12_asm.s
-      At line 1263 in file Exercise12_asm.s
-      At line 1270 in file Exercise12_asm.s
+      At line 446 in file Exercise12_asm.s
+      At line 1025 in file Exercise12_asm.s
+      At line 1031 in file Exercise12_asm.s
+      At line 1258 in file Exercise12_asm.s
+      At line 1266 in file Exercise12_asm.s
+      At line 1273 in file Exercise12_asm.s
 
 Q_REC_SZ 00000012
 
@@ -11466,9 +11471,9 @@ Symbol: Q_REC_SZ
    Definitions
       At line 188 in file Exercise12_asm.s
    Uses
-      At line 1257 in file Exercise12_asm.s
-      At line 1265 in file Exercise12_asm.s
-      At line 1272 in file Exercise12_asm.s
+      At line 1260 in file Exercise12_asm.s
+      At line 1268 in file Exercise12_asm.s
+      At line 1275 in file Exercise12_asm.s
 
 RET_ADDR_T_MASK 00000001
 
@@ -11708,11 +11713,11 @@ Symbol: SERVO_POSITIONS
    Definitions
       At line 210 in file Exercise12_asm.s
    Uses
-      At line 1238 in file Exercise12_asm.s
-      At line 1239 in file Exercise12_asm.s
-      At line 1240 in file Exercise12_asm.s
       At line 1241 in file Exercise12_asm.s
       At line 1242 in file Exercise12_asm.s
+      At line 1243 in file Exercise12_asm.s
+      At line 1244 in file Exercise12_asm.s
+      At line 1245 in file Exercise12_asm.s
 
 SIM_BASE 40047000
 
@@ -11877,7 +11882,7 @@ Symbol: SIM_SCGC4
    Definitions
       At line 1711 in file lab_MKL46Z4.s
    Uses
-      At line 1047 in file Exercise12_asm.s
+      At line 1050 in file Exercise12_asm.s
 Comment: SIM_SCGC4 used once
 SIM_SCGC4_CMP_MASK 00080000
 
@@ -11985,7 +11990,7 @@ Symbol: SIM_SCGC4_UART0_MASK
    Definitions
       At line 1795 in file lab_MKL46Z4.s
    Uses
-      At line 1048 in file Exercise12_asm.s
+      At line 1051 in file Exercise12_asm.s
 Comment: SIM_SCGC4_UART0_MASK used once
 SIM_SCGC4_UART0_SHIFT 0000000A
 
@@ -12055,7 +12060,7 @@ Symbol: SIM_SCGC5
    Definitions
       At line 1712 in file lab_MKL46Z4.s
    Uses
-      At line 1053 in file Exercise12_asm.s
+      At line 1056 in file Exercise12_asm.s
 Comment: SIM_SCGC5 used once
 SIM_SCGC5_LPTMR_MASK 00000001
 
@@ -12093,7 +12098,7 @@ Symbol: SIM_SCGC5_PORTA_MASK
    Definitions
       At line 1825 in file lab_MKL46Z4.s
    Uses
-      At line 1054 in file Exercise12_asm.s
+      At line 1057 in file Exercise12_asm.s
 Comment: SIM_SCGC5_PORTA_MASK used once
 SIM_SCGC5_PORTA_SHIFT 00000009
 
@@ -12427,7 +12432,7 @@ Symbol: SIM_SOPT2
    Definitions
       At line 1717 in file lab_MKL46Z4.s
    Uses
-      At line 1033 in file Exercise12_asm.s
+      At line 1036 in file Exercise12_asm.s
 Comment: SIM_SOPT2 used once
 SIM_SOPT2_CLKOUTSEL_MASK 000000E0
 
@@ -12513,7 +12518,7 @@ Symbol: SIM_SOPT2_UART0SRC_MASK
    Definitions
       At line 1900 in file lab_MKL46Z4.s
    Uses
-      At line 1034 in file Exercise12_asm.s
+      At line 1037 in file Exercise12_asm.s
 Comment: SIM_SOPT2_UART0SRC_MASK used once
 SIM_SOPT2_UART0SRC_MCGPLLCLK 04000000
 
@@ -12543,7 +12548,7 @@ Symbol: SIM_SOPT2_UART0_MCGPLLCLK_DIV2
 ARM Macro Assembler    Page 156 Alphabetic symbol ordering
 Absolute symbols
 
-      At line 1037 in file Exercise12_asm.s
+      At line 1040 in file Exercise12_asm.s
 Comment: SIM_SOPT2_UART0_MCGPLLCLK_DIV2 used once
 SIM_SOPT2_USBSRC_MASK 00040000
 
@@ -12583,7 +12588,7 @@ Symbol: SIM_SOPT5
    Definitions
       At line 1719 in file lab_MKL46Z4.s
    Uses
-      At line 1041 in file Exercise12_asm.s
+      At line 1044 in file Exercise12_asm.s
 Comment: SIM_SOPT5 used once
 SIM_SOPT5_OFFSET 00001010
 
@@ -12653,7 +12658,7 @@ Symbol: SIM_SOPT5_UART0_EXTERN_MASK_CLEAR
    Definitions
       At line 82 in file Exercise12_asm.s
    Uses
-      At line 1042 in file Exercise12_asm.s
+      At line 1045 in file Exercise12_asm.s
 Comment: SIM_SOPT5_UART0_EXTERN_MASK_CLEAR used once
 SIM_SOPT5_UART1ODE_MASK 00020000
 
@@ -14343,13 +14348,13 @@ Symbol: UART0_BASE
       At line 2220 in file lab_MKL46Z4.s
       At line 2221 in file lab_MKL46Z4.s
       At line 2222 in file lab_MKL46Z4.s
-      At line 417 in file Exercise12_asm.s
-      At line 451 in file Exercise12_asm.s
-      At line 467 in file Exercise12_asm.s
-      At line 478 in file Exercise12_asm.s
-      At line 778 in file Exercise12_asm.s
-      At line 1068 in file Exercise12_asm.s
-      At line 1106 in file Exercise12_asm.s
+      At line 420 in file Exercise12_asm.s
+      At line 454 in file Exercise12_asm.s
+      At line 470 in file Exercise12_asm.s
+      At line 481 in file Exercise12_asm.s
+      At line 781 in file Exercise12_asm.s
+      At line 1071 in file Exercise12_asm.s
+      At line 1109 in file Exercise12_asm.s
 
 UART0_BDH 4006A000
 
@@ -14371,7 +14376,7 @@ Symbol: UART0_BDH_9600
    Definitions
       At line 93 in file Exercise12_asm.s
    Uses
-      At line 1108 in file Exercise12_asm.s
+      At line 1111 in file Exercise12_asm.s
 Comment: UART0_BDH_9600 used once
 UART0_BDH_LBKDIE_MASK 00000080
 
@@ -14396,7 +14401,7 @@ Symbol: UART0_BDH_OFFSET
       At line 2199 in file lab_MKL46Z4.s
    Uses
       At line 2211 in file lab_MKL46Z4.s
-      At line 1109 in file Exercise12_asm.s
+      At line 1112 in file Exercise12_asm.s
 
 UART0_BDH_RXEDGIE_MASK 00000040
 
@@ -14466,7 +14471,7 @@ Symbol: UART0_BDL_9600
    Definitions
       At line 101 in file Exercise12_asm.s
    Uses
-      At line 1110 in file Exercise12_asm.s
+      At line 1113 in file Exercise12_asm.s
 Comment: UART0_BDL_9600 used once
 UART0_BDL_OFFSET 00000001
 
@@ -14475,7 +14480,7 @@ Symbol: UART0_BDL_OFFSET
       At line 2200 in file lab_MKL46Z4.s
    Uses
       At line 2212 in file lab_MKL46Z4.s
-      At line 1111 in file Exercise12_asm.s
+      At line 1114 in file Exercise12_asm.s
 
 UART0_BDL_SBR_MASK 000000FF
 
@@ -14513,7 +14518,7 @@ Symbol: UART0_C1_8N1
    Definitions
       At line 113 in file Exercise12_asm.s
    Uses
-      At line 1112 in file Exercise12_asm.s
+      At line 1115 in file Exercise12_asm.s
 Comment: UART0_C1_8N1 used once
 UART0_C1_DOZEEN_MASK 00000040
 
@@ -14592,7 +14597,7 @@ Symbol: UART0_C1_OFFSET
       At line 2201 in file lab_MKL46Z4.s
    Uses
       At line 2213 in file lab_MKL46Z4.s
-      At line 1113 in file Exercise12_asm.s
+      At line 1116 in file Exercise12_asm.s
 
 UART0_C1_PE_MASK 00000002
 
@@ -14701,12 +14706,12 @@ Symbol: UART0_C2_OFFSET
       At line 2202 in file lab_MKL46Z4.s
    Uses
       At line 2214 in file lab_MKL46Z4.s
-      At line 420 in file Exercise12_asm.s
-      At line 461 in file Exercise12_asm.s
-      At line 780 in file Exercise12_asm.s
-      At line 1070 in file Exercise12_asm.s
-      At line 1072 in file Exercise12_asm.s
-      At line 1128 in file Exercise12_asm.s
+      At line 423 in file Exercise12_asm.s
+      At line 464 in file Exercise12_asm.s
+      At line 783 in file Exercise12_asm.s
+      At line 1073 in file Exercise12_asm.s
+      At line 1075 in file Exercise12_asm.s
+      At line 1131 in file Exercise12_asm.s
 
 UART0_C2_RE_MASK 00000004
 
@@ -14838,7 +14843,7 @@ Symbol: UART0_C2_TI_RI
    Definitions
       At line 126 in file Exercise12_asm.s
    Uses
-      At line 779 in file Exercise12_asm.s
+      At line 782 in file Exercise12_asm.s
 Comment: UART0_C2_TI_RI used once
 UART0_C2_T_R 0000000C
 
@@ -14847,7 +14852,7 @@ Symbol: UART0_C2_T_R
       At line 124 in file Exercise12_asm.s
    Uses
       At line 125 in file Exercise12_asm.s
-      At line 1069 in file Exercise12_asm.s
+      At line 1072 in file Exercise12_asm.s
 
 UART0_C2_T_RI 0000002C
 
@@ -14856,8 +14861,8 @@ Symbol: UART0_C2_T_RI
       At line 125 in file Exercise12_asm.s
    Uses
       At line 126 in file Exercise12_asm.s
-      At line 460 in file Exercise12_asm.s
-      At line 1127 in file Exercise12_asm.s
+      At line 463 in file Exercise12_asm.s
+      At line 1130 in file Exercise12_asm.s
 
 UART0_C3 4006A006
 
@@ -14911,7 +14916,7 @@ Symbol: UART0_C3_NO_TXINV
    Definitions
       At line 140 in file Exercise12_asm.s
    Uses
-      At line 1114 in file Exercise12_asm.s
+      At line 1117 in file Exercise12_asm.s
 Comment: UART0_C3_NO_TXINV used once
 UART0_C3_OFFSET 00000006
 
@@ -14920,7 +14925,7 @@ Symbol: UART0_C3_OFFSET
       At line 2205 in file lab_MKL46Z4.s
    Uses
       At line 2217 in file lab_MKL46Z4.s
-      At line 1115 in file Exercise12_asm.s
+      At line 1118 in file Exercise12_asm.s
 
 UART0_C3_ORIE_MASK 00000008
 
@@ -15098,7 +15103,7 @@ Symbol: UART0_C4_NO_MATCH_OSR_16
    Definitions
       At line 150 in file Exercise12_asm.s
    Uses
-      At line 1116 in file Exercise12_asm.s
+      At line 1119 in file Exercise12_asm.s
 Comment: UART0_C4_NO_MATCH_OSR_16 used once
 UART0_C4_OFFSET 0000000A
 
@@ -15107,7 +15112,7 @@ Symbol: UART0_C4_OFFSET
       At line 2209 in file lab_MKL46Z4.s
    Uses
       At line 2221 in file lab_MKL46Z4.s
-      At line 1117 in file Exercise12_asm.s
+      At line 1120 in file Exercise12_asm.s
 
 UART0_C4_OSR_16 0000000F
 
@@ -15169,7 +15174,7 @@ Symbol: UART0_C5_NO_DMA_SSR_SYNC
    Definitions
       At line 159 in file Exercise12_asm.s
    Uses
-      At line 1118 in file Exercise12_asm.s
+      At line 1121 in file Exercise12_asm.s
 Comment: UART0_C5_NO_DMA_SSR_SYNC used once
 UART0_C5_OFFSET 0000000B
 
@@ -15178,7 +15183,7 @@ Symbol: UART0_C5_OFFSET
       At line 2210 in file lab_MKL46Z4.s
    Uses
       At line 2222 in file lab_MKL46Z4.s
-      At line 1119 in file Exercise12_asm.s
+      At line 1122 in file Exercise12_asm.s
 
 UART0_C5_RDMAE_MASK 00000020
 
@@ -15249,8 +15254,8 @@ Symbol: UART0_D_OFFSET
       At line 2206 in file lab_MKL46Z4.s
    Uses
       At line 2218 in file lab_MKL46Z4.s
-      At line 454 in file Exercise12_asm.s
-      At line 479 in file Exercise12_asm.s
+      At line 457 in file Exercise12_asm.s
+      At line 482 in file Exercise12_asm.s
 
 UART0_D_R0T0_MASK 00000001
 
@@ -15404,7 +15409,7 @@ ARM Macro Assembler    Page 200 Alphabetic symbol ordering
 Absolute symbols
 
    Uses
-      At line 1077 in file Exercise12_asm.s
+      At line 1080 in file Exercise12_asm.s
 Comment: UART0_IPR used once
 UART0_IRQ 0000000C
 
@@ -15525,7 +15530,7 @@ Symbol: UART0_S1_CLEAR_FLAGS
    Definitions
       At line 170 in file Exercise12_asm.s
    Uses
-      At line 1120 in file Exercise12_asm.s
+      At line 1123 in file Exercise12_asm.s
 Comment: UART0_S1_CLEAR_FLAGS used once
 
 
@@ -15588,9 +15593,9 @@ Symbol: UART0_S1_OFFSET
       At line 2203 in file lab_MKL46Z4.s
    Uses
       At line 2215 in file lab_MKL46Z4.s
-      At line 433 in file Exercise12_asm.s
-      At line 470 in file Exercise12_asm.s
-      At line 1121 in file Exercise12_asm.s
+      At line 436 in file Exercise12_asm.s
+      At line 473 in file Exercise12_asm.s
+      At line 1124 in file Exercise12_asm.s
 
 
 
@@ -15768,7 +15773,7 @@ Symbol: UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS
    Definitions
       At line 183 in file Exercise12_asm.s
    Uses
-      At line 1123 in file Exercise12_asm.s
+      At line 1126 in file Exercise12_asm.s
 Comment: UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS used once
 UART0_S2_OFFSET 00000005
 
@@ -15777,7 +15782,7 @@ Symbol: UART0_S2_OFFSET
       At line 2204 in file lab_MKL46Z4.s
    Uses
       At line 2216 in file lab_MKL46Z4.s
-      At line 1124 in file Exercise12_asm.s
+      At line 1127 in file Exercise12_asm.s
 
 UART0_S2_RAF_MASK 00000001
 

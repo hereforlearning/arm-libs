@@ -221,6 +221,9 @@ SERVO_POSITIONS			EQU	5
 			EXPORT PutStringSB
 			EXPORT Init_UART0_IRQ
             EXPORT AddIntMultiU
+			EXPORT GetChar
+			EXPORT PutChar
+			EXPORT PutNumHex 
 			
 			;Interrupt request handlers
 			EXPORT UART0_IRQHandler
