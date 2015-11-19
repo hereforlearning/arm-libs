@@ -283,6 +283,9 @@ void Init_DAC0() {
 */
 void Init_ADC0() {
 	
+	UInt16 pluCalibVal;
+	UInt16 mnCalibVal;
+	
 	/* Enable ACD0 module clock */
 	SIM->SCGC6 |= SIM_SCGC6_ADC0_MASK;
 	
@@ -309,7 +312,7 @@ void Init_ADC0() {
 		}	
 		
 		/* Compute and store plus side calibration value */
-		UInt16 pluCalibVal = ADC0->CLP0 + ADC0->CLP1 + ADC0->CLP2 \
+		pluCalibVal = ADC0->CLP0 + ADC0->CLP1 + ADC0->CLP2 \
 		+ ADC0->CLP3 + ADC0->CLP4 + ADC0->CLPS;
 		
 		/* Split up the operation to make it more readable */
@@ -320,7 +323,7 @@ void Init_ADC0() {
 		ADC0->PG = pluCalibVal;
 		
 	  /* Compute and store minus side calibration value */
-		UInt16 mnCalibVal = ADC0->CLM0 + ADC0->CLM1 + ADC0->CLM2 \
+		mnCalibVal = ADC0->CLM0 + ADC0->CLM1 + ADC0->CLM2 \
 		+ ADC0->CLM3 + ADC0->CLM4 + ADC0->CLMS;
 		
 		/* Split up the operation to make it more readable */
@@ -366,7 +369,7 @@ void Init_TPM0() {
 	TPM0->CONTROLS[4].CnSC = TPM_CnSC_PWMH;
 	
 	/* Set TPM0 channel 4 value */
-	TPM0->CONTROLS[4].CnV = TPM_CnV_PWM_DUTY_2ms;
+	TPM0->CONTROLS[4].CnV = PWM_duty_table_0;
 	
 	/* Set TPM0 counter clock configuration */
 	TPM0->SC = TPM_SC_CLK_DIV16;
@@ -412,7 +415,7 @@ UInt16 getADCConversion(UInt16 analog) {
 }
 
 int main (void) {
-
+	
 	/* mask interrupts */
   __asm("CPSID   I");  
 	

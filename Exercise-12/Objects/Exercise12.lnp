@@ -1,7 +1,7 @@
 --cpu Cortex-M0+
-".\objects\exercise12_c.o"
 ".\objects\exercise12_asm.o"
 ".\objects\lab_mkl46z4.o"
+".\objects\exercise12_c.o"
 ".\objects\startup_mkl46z4.o"
 ".\objects\system_mkl46z4.o"
 --strict --scatter ".\Objects\Exercise12.sct"

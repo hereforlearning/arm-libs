@@ -196,16 +196,29 @@ BUF_START				EQU 8
 BUF_PAST				EQU 12
 BUF_SIZE				EQU 16
 NUM_ENQD				EQU 17
+	
+;Servo calibration values for lookup table
+;Change these to match the physical values that work for the 
+;specific servo you're interacting with
+
+PWM_PERIOD_20ms 		EQU 60000
+PWM_DUTY_5 				EQU 3000
+PWM_DUTY_10				EQU 6000
 
 ;****************************************************************
 ;Program
             AREA    MyCode,CODE,READONLY
 			
-			;Exports and imports to interface with ioParser.c
+			;Exports and imports to interface with c code
+			EXPORT PWM_duty_table_0
+			
 			EXPORT GetStringSB
 			EXPORT PutStringSB
 			EXPORT Init_UART0_IRQ
             EXPORT AddIntMultiU
+			
+			;Interrupt request handlers
+			EXPORT UART0_IRQHandler
                 
 ;-------------------------------------------
 AddIntMultiU
@@ -360,7 +373,6 @@ END_SET_SUB
             POP {R0 - R3}
             BX LR
 
-;-------------------------------------------
 				
 ;-------------------------------------------
 PutNumUB
@@ -390,7 +402,7 @@ PutNumUB
 ;write to UART0 transmit data register. If rx enabled
 ;enqueue to transmit queue from UART0 recieve data register
 ;-----------------------------------------
-UART0_ISR
+UART0_IRQHandler
 			
 			;Mask other interrupts
 			CPSID I
@@ -1184,81 +1196,10 @@ PRINT_CHAR
 END_PUTNUM
 		;restore previous values to register and return
 		POP {R0, R1, R2, PC}
-
 			
 ;-------------------------------------------------------------------
 
 ;>>>>>   end subroutine code <<<<<
-            ALIGN
-;****************************************************************
-;Vector Table Mapped to Address 0 at Reset
-;Linker requires __Vectors to be exported
-            AREA    RESET, DATA, READONLY
-				
-            EXPORT  __Vectors
-            EXPORT  __Vectors_End
-            EXPORT  __Vectors_Size
-            IMPORT  __initial_sp
-            IMPORT  Dummy_Handler
-				
-			;Import main reset handler to handle main logic in C.	
-			;TODO: Is this required?
-			PRESERVE8 {TRUE} 
-			IMPORT Reset_Handler
-__Vectors 
-                                      ;ARM core vectors
-            DCD    __initial_sp       ;00:end of stack
-            DCD    Reset_Handler      ;01:reset vector
-            DCD    Dummy_Handler      ;02:NMI
-            DCD    Dummy_Handler      ;03:hard fault
-            DCD    Dummy_Handler      ;04:(reserved)
-            DCD    Dummy_Handler      ;05:(reserved)
-            DCD    Dummy_Handler      ;06:(reserved)
-            DCD    Dummy_Handler      ;07:(reserved)
-            DCD    Dummy_Handler      ;08:(reserved)
-            DCD    Dummy_Handler      ;09:(reserved)
-            DCD    Dummy_Handler      ;10:(reserved)
-            DCD    Dummy_Handler      ;11:SVCall (supervisor call)
-            DCD    Dummy_Handler      ;12:(reserved)
-            DCD    Dummy_Handler      ;13:(reserved)
-            DCD    Dummy_Handler      ;14:PendableSrvReq (pendable request 
-                                      ;   for system service)
-            DCD    Dummy_Handler      ;15:SysTick (system tick timer)
-            DCD    Dummy_Handler      ;16:DMA channel 0 xfer complete/error
-            DCD    Dummy_Handler      ;17:DMA channel 1 xfer complete/error
-            DCD    Dummy_Handler      ;18:DMA channel 2 xfer complete/error
-            DCD    Dummy_Handler      ;19:DMA channel 3 xfer complete/error
-            DCD    Dummy_Handler      ;20:(reserved)
-            DCD    Dummy_Handler      ;21:command complete; read collision
-            DCD    Dummy_Handler      ;22:low-voltage detect;
-                                      ;   low-voltage warning
-            DCD    Dummy_Handler      ;23:low leakage wakeup
-            DCD    Dummy_Handler      ;24:I2C0
-            DCD    Dummy_Handler      ;25:I2C1
-            DCD    Dummy_Handler      ;26:SPI0 (all IRQ sources)
-            DCD    Dummy_Handler      ;27:SPI1 (all IRQ sources)
-            DCD    UART0_ISR		  ;28:UART0 (status; error)
-            DCD    Dummy_Handler      ;29:UART1 (status; error)
-            DCD    Dummy_Handler      ;30:UART2 (status; error)
-            DCD    Dummy_Handler      ;31:ADC0
-            DCD    Dummy_Handler      ;32:CMP0
-            DCD    Dummy_Handler      ;33:TPM0
-            DCD    Dummy_Handler      ;34:TPM1
-            DCD    Dummy_Handler      ;35:TPM2
-            DCD    Dummy_Handler      ;36:RTC (alarm)
-            DCD    Dummy_Handler      ;37:RTC (seconds)
-            DCD    Dummy_Handler      ;38:PIT (all IRQ sources)
-            DCD    Dummy_Handler      ;39:I2S0
-            DCD    Dummy_Handler      ;40:USB0
-            DCD    Dummy_Handler      ;41:DAC0
-            DCD    Dummy_Handler      ;42:TSI0
-            DCD    Dummy_Handler      ;43:MCG
-            DCD    Dummy_Handler      ;44:LPTMR0
-            DCD    Dummy_Handler      ;45:Segment LCD
-            DCD    Dummy_Handler      ;46:PORTA pin detect
-            DCD    Dummy_Handler      ;47:PORTC and PORTD pin detect
-__Vectors_End
-__Vectors_Size  EQU     __Vectors_End - __Vectors
             ALIGN
 ;****************************************************************
 ;Constants
@@ -1274,6 +1215,14 @@ In					DCB "In= ", 0
 Out					DCB "Out= ", 0
 Num					DCB "Num= ", 0
 Spaces				DCB "   ", 0
+
+PWM_duty_table_0
+					DCW PWM_DUTY_10											;100% Range
+					DCW ((3 * (PWM_DUTY_10 - PWM_DUTY_5)/4) + PWM_DUTY_5)	;75% Ramge
+					DCW (((PWM_DUTY_10 - PWM_DUTY_5) / 2) + PWM_DUTY_5) 	;50% Range
+					DCW (((PWM_DUTY_10 - PWM_DUTY_5) / 4) + PWM_DUTY_5) 	;25% Range
+					DCW PWM_DUTY_5											;0% Range
+					
 ;>>>>>   end constants here <<<<<
             ALIGN
 ;****************************************************************

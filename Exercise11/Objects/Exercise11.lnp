@@ -1,0 +1,9 @@
+--cpu Cortex-M0+
+".\objects\ioparser.o"
+".\objects\ex11-asm.o"
+".\objects\mkl46z4.o"
+".\objects\start.o"
+--strict --scatter ".\Objects\Exercise11.sct"
+--summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Listings\Exercise11.map" -o .\Objects\Exercise11.axf
