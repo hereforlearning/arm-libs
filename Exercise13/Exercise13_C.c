@@ -8,7 +8,7 @@
 /* Class:  CMPE 250                                                  */
 /* Section:  03 (TR 2-4 PM)                                          */
 /*********************************************************************/
-#include "ioParser.h"  
+#include "Exercise13_H.h"  
 
 #define FALSE      (0)
 #define TRUE       (1)
@@ -48,9 +48,9 @@ int convToAscii(int numericRep) {
 }
 
 int GetRandom(){
-  int count;
-  GetCount(*count); //Update count variable
-  return count % 4;
+  UInt32 *count;
+  GetCount(count); //Update count variable
+  return *count % 4;
 }
 
 int main (void) {
@@ -58,14 +58,10 @@ int main (void) {
 
   __asm("CPSID I");  /* mask interrupts */
 
-  Startup ();
   Init_UART0_IRQ ();
   Init_PIT_IRQ ();
 
   while(1) {
     selection = GetRandom(); //get a new random number
-
   }
-
-  return (0);
 } 
