@@ -63,6 +63,7 @@ int getRandom(){
 
 int main (void) {
   char selection = 0;
+	int keyPressInd;
 
   __asm("CPSID I");  /* mask interrupts */
 
@@ -70,6 +71,10 @@ int main (void) {
   Init_PIT_IRQ ();
 
   while(1) {
-    selection = getRandom(); //get a new random number
+		//get a new random number
+    //selection = getRandom(); 
+		
+		//Check if key is pressed without collecting character
+		keyPressInd = IsKeyPressed();
   }
 } 

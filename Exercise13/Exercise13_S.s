@@ -231,6 +231,8 @@ PWM_DUTY_10				EQU 6000
 ;DAC lookup table equates
 DAC0_STEPS				EQU 4096
 SERVO_POSITIONS			EQU	5
+	
+TDRE_CHARSET_MASK		EQU 0x80
 
 ;****************************************************************
 ;Program
@@ -249,9 +251,44 @@ SERVO_POSITIONS			EQU	5
 			EXPORT PutNumHex 
 			EXPORT GetCount
 			EXPORT Init_PIT_IRQ
+			EXPORT IsKeyPressed
 			
 			;Interrupt request handlers
 			EXPORT UART0_IRQHandler
+				
+;--------------------------------------------
+IsKeyPressed
+
+;IsKeyPressed: Subroutine to determine if a key has
+;been pressed by checking the RDRF bit of UART0. 
+;If the recieve data register has a value then the sub
+;will return a value of 1, and otherwise will return
+;a value of zero. 
+
+;Inputs - N/A
+;Outputs:
+;  R0 - Status of keypress (1 if key and 0 otherwise)
+;--------------------------------------------
+
+			LDR R0, =UART0_BASE
+			
+			;Check if TDRE Bit is set
+			LDRB R1,[R0,#UART0_S1_OFFSET]
+			MOVS R2, #TDRE_CHARSET_MASK
+			
+			ANDS R1, R1, R2
+			CMP R1, #0
+			BEQ CHAR_NOT_SET
+
+CHAR_SET
+			MOVS R0, #1
+			B END_CHECK_CHAR
+			
+CHAR_NOT_SET
+			MOVS R0, #0
+			
+END_CHECK_CHAR
+			BX LR
 
 ;--------------------------------------------               
 Init_PIT_IRQ
