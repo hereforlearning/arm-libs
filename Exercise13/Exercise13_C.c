@@ -47,7 +47,15 @@ int convToAscii(int numericRep) {
   }
 }
 
-int GetRandom(){
+/*
+* Fetch the status of the current PIT timer count
+* value to seed a pseudo random number. The number
+* is then divided by 4 to generate a remainder of 0
+* or 3, inclusive. 
+*
+* @return int - random number between 0 and 3 based on timer state
+*/
+int getRandom(){
   UInt32 *count;
   GetCount(count); //Update count variable
   return *count % 4;
@@ -62,6 +70,6 @@ int main (void) {
   Init_PIT_IRQ ();
 
   while(1) {
-    selection = GetRandom(); //get a new random number
+    selection = getRandom(); //get a new random number
   }
 } 
