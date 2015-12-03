@@ -26,10 +26,15 @@ extern UInt16 PWM_duty_table_0;
 char GetChar (void);
 void GetStringSB (char String[], int StringBufferCapacity);
 void Init_UART0_IRQ (void);
+void Init_PIT_IRQ (void);
 void PutChar (char Character);
 void PutNumHex (UInt32);
 void PutNumUB (UInt8);
 void PutStringSB (char String[], int StringBufferCapacity);
-void GetCount (UInt32 *Count);
+UInt32 GetCount (UInt32 *Count);
 void Startup (void);
 int  IsKeyPressed(void);
+void InitLEDs(void);
+void SetLED(char);
+void StartTimer(void);
+

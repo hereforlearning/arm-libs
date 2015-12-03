@@ -273,9 +273,13 @@ SERVO_POSITIONS			EQU	5
 			EXPORT PutNumHex 
 			EXPORT GetCount
 			EXPORT StartTimer
+			EXPORT SetLED
+			EXPORT InitLEDs
 			
 			;Interrupt request handlers
 			EXPORT UART0_IRQHandler
+			EXPORT Init_PIT_IRQ
+			EXPORT IsKeyPressed 
 			EXPORT PIT_IRQHandler
 				
 ;-------------------------------------------
@@ -283,7 +287,7 @@ StartTimer
 ;Begin counting PIT interrupts and clear the
 ;Already existing Count variable to zero.
 
-			PUSH {R0}
+			PUSH {R0-R1}
 			
 			;Initalize RunStopwatch to 1 and Count to 0
 			LDR R0, =Count
@@ -293,6 +297,10 @@ StartTimer
 			LDR R0, =RunStopWatch
 			MOVS R1, #1
 			STRB R1, [R0, #0]
+			
+			POP {R0-R1}
+			
+			BX LR
 				
 ;--------------------------------------------
 InitLEDs
@@ -530,10 +538,15 @@ Init_PIT_IRQ
 GetCount
 ;Grab count from memory and store it in the address passed to R0
             PUSH  {R1}
+			
             LDR   R1,=Count
             LDR   R1,[R1,#0]
             STR   R1,[R0,#0]
+			
+			;Move count value to return.
+			MOVS R0, R1
             POP   {R1}
+			
             BX    LR
                 
                 
@@ -1586,8 +1599,9 @@ QueueRecord SPACE Q_REC_SZ
 StringReversal		SPACE 2
 APSRState           SPACE 2
 
+			ALIGN
 Count				SPACE 4
-RunStopWatch 		SPACE 2
+RunStopWatch 		SPACE 1
 	
 ;>>>>>   end variables here <<<<<
             ALIGN

@@ -250,9 +250,9 @@
 * @return int - random number between 0 and 3 based on timer state
 */
 int getRandom(){
-  UInt32 *count;
-  GetCount(count); //Update count variable
-  return *count % 4;
+  UInt32 count;
+  GetCount(&count); //Update count variable
+  return count % 4;
 }
 
 /**
@@ -287,8 +287,8 @@ int getScore(char keyPressed, char lightShown, int round) {
 }
 
 int main (void) {
-	
-	int i, selection, count, result, score;
+	UInt32 count;
+	int i, selection, result, score;
   char keyPressed;
 	
 	/* mask interrupts */
@@ -298,9 +298,9 @@ int main (void) {
   /* Before unmasking interrupts            */
 	
 	/* Fire up the UART */
-	Init_UART0_IRQ ();
-  
-  InitLeds();
+	Init_UART0_IRQ();
+  Init_PIT_IRQ();
+  InitLEDs();
 	
   __asm("CPSIE   I");  /* unmask interrupts */
 
@@ -331,17 +331,20 @@ int main (void) {
 		
     //3: After a key is pressed, program runs each game round "i"
 		for(i = 0; i < NUM_ROUNDS; i++){
+			//Start timer and reset
+			StartTimer();
+			
       //a: get a random number 0-3
       selection = getRandom();
       //a: light the LEDs
       if(selection == NONE){
-        SetLED(0b00);
+        SetLED(0);
       } else if(selection == GREEN) {
-        SetLED(0b01);
+        SetLED(1);
       } else if(selection == RED) {
-        SetLED(0b10);
+        SetLED(2);
       } else if(selection == GREEN) {
-        SetLED(0b11);
+        SetLED(3);
       }
       
       //b: print a ">" prompt
@@ -369,13 +372,13 @@ int main (void) {
       //Echo color combination shown
       PutStringSB("LEDs shown were: ",MAX_STRING);
       if(selection == NONE){
-        PutStringSB("None");
+        PutStringSB("None", MAX_STRING);
       } else if(selection == GREEN) {
-        PutStringSB("Green");
+        PutStringSB("Green", MAX_STRING);
       } else if(selection == RED) {
-        PutStringSB("Red");
+        PutStringSB("Red", MAX_STRING);
       } else if(selection == BOTH) {
-        PutStringSB("Green & Red");
+        PutStringSB("Green & Red", MAX_STRING);
       }
       
       //Then, add to score
@@ -388,7 +391,6 @@ int main (void) {
     }
     
     //4: After last round, display score
-    P
     
     //5: At end of game, repeat whole process
 	}
