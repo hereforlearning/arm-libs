@@ -78,6 +78,33 @@
         <IsCurrentTarget>1</IsCurrentTarget>
       </OPTFL>
       <CpuCode>14</CpuCode>
+      <Books>
+        <Book>
+          <Number>0</Number>
+          <Title>KoalaEVM Quick Start (Koala EVM)</Title>
+          <Path>C:\Keil_v5\ARM\PACK\Clarinox\Wireless\2.0.1\Docs\KoalaEVM_QuickStart.pdf</Path>
+        </Book>
+        <Book>
+          <Number>1</Number>
+          <Title>KoalaEVM Applications Manual (Koala EVM)</Title>
+          <Path>C:\Keil_v5\ARM\PACK\Clarinox\Wireless\2.0.1\Docs\KoalaEVM_SoftwareApplications.pdf</Path>
+        </Book>
+        <Book>
+          <Number>2</Number>
+          <Title>Schematics (FRDM-KL43Z)</Title>
+          <Path>C:\Keil_v5\ARM\PACK\Keil\Kinetis_KLxx_DFP\1.6.0\Boards\Freescale\FRDM-KL43Z\Documents\FRDM-KL43Z_SCH.pdf</Path>
+        </Book>
+        <Book>
+          <Number>3</Number>
+          <Title>User Manual (FRDM-KL43Z)</Title>
+          <Path>C:\Keil_v5\ARM\PACK\Keil\Kinetis_KLxx_DFP\1.6.0\Boards\Freescale\FRDM-KL43Z\Documents\FRDMKL43ZUG.pdf</Path>
+        </Book>
+        <Book>
+          <Number>4</Number>
+          <Title>KoalaEVM Web Page (Koala EVM)</Title>
+          <Path>http://www.clarinox.com/index.php?id=415</Path>
+        </Book>
+      </Books>
       <DebugOpt>
         <uSim>0</uSim>
         <uTrg>1</uTrg>

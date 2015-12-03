@@ -567,11 +567,11 @@ ARM Macro Assembler    Page 9
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0+ --apcs=inter
 work --depend=.\objects\startup_mkl46z4.d -o.\objects\startup_mkl46z4.o -IC:\Us
-ers\justin\Desktop\arm-libs\Exercise13\RTE -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\4.4.
-0\CMSIS\Include -IC:\Keil_v5\ARM\PACK\Keil\Kinetis_KLxx_DFP\1.7.0\Device\Includ
-e --predefine="__EVAL SETA 1" --predefine="__UVISION_VERSION SETA 516" --predef
-ine="_RTE_ SETA 1" --predefine="MKL46Z256xxx4 SETA 1" --list=.\listings\startup
-_mkl46z4.lst RTE\Device\MKL46Z256xxx4\startup_MKL46Z4.s
+ers\jmp3833\Desktop\arm-libs\Exercise13\RTE -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\4.3
+.0\CMSIS\Include -IC:\Keil_v5\ARM\PACK\Keil\Kinetis_KLxx_DFP\1.6.0\Device\Inclu
+de --predefine="__UVISION_VERSION SETA 515" --predefine="_RTE_ SETA 1" --predef
+ine="MKL46Z256xxx4 SETA 1" --list=.\listings\startup_mkl46z4.lst RTE\Device\MKL
+46Z256xxx4\startup_MKL46Z4.s
 
 
 
@@ -1329,4 +1329,4 @@ Symbol: __use_two_region_memory
       None
 Comment: __use_two_region_memory unused
 3 symbols
-417 symbols in table
+416 symbols in table

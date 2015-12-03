@@ -183,6 +183,55 @@ UART0_S1_CLEAR_FLAGS  EQU  0x1F
 UART0_S2_NO_RXINV_BRK10_NO_LBKDETECT_CLEAR_FLAGS  EQU  0xC0
 ;---------------------------------------------------------------
 
+;---------------------------------------------------------------
+;PIT_LDVALn:  PIT load value register n
+;31-00:TSV=timer start value (period in clock cycles - 1)
+;Clock ticks for 0.01 s at 24 MHz count rate
+;0.01 s * 24,000,000 Hz = 240,000
+;TSV = 240,000 - 1
+PIT_LDVAL_10ms  EQU  239999
+;---------------------------------------------------------------
+;PIT_MCR:  PIT module control register
+;1-->    0:FRZ=freeze (continue'/stop in debug mode)
+;0-->    1:MDIS=module disable (PIT section)
+;               RTI timer not affected
+;               must be enabled before any other PIT setup
+PIT_MCR_EN_FRZ  EQU  PIT_MCR_FRZ_MASK
+;---------------------------------------------------------------
+;PIT_TCTRLn:  PIT timer control register n
+;0-->   2:CHN=chain mode (enable)
+;1-->   1:TIE=timer interrupt enable
+;1-->   0:TEN=timer enable
+PIT_TCTRL_CH_IE  EQU  (PIT_TCTRL_TEN_MASK :OR: PIT_TCTRL_TIE_MASK)
+;---------------------------------------------------------------
+;Interrupt should be set to the highest priority
+PIT_IRQ_PRI        EQU 0
+;---------------------------------------------------
+
+TDRE_CHARSET_MASK		EQU 0x80
+    
+    
+    
+;Led Shtuff
+
+;Port D
+PTD5_MUX_GPIO       EQU     (1 << PORT_PCR_MUX_SHIFT)
+SET_PTD5_GPIO       EQU     (PORT_PCR_ISF_MASK :OR: \
+                             PTD5_MUX_GPIO)
+;Port E
+PTE29_MUX_GPIO      EQU     (1 << PORT_PCR_MUX_SHIFT)
+SET_PTE29_GPIO      EQU     (PORT_PCR_ISF_MASK :OR: \
+                             PTE29_MUX_GPIO)
+
+POS_RED             EQU     29
+POS_GREEN           EQU     5
+    
+LED_RED_MASK        EQU     (1 << POS_RED)
+LED_GREEN_MASK      EQU     (1 << POS_GREEN)
+
+LED_PORTD_MASK      EQU     LED_GREEN_MASK
+LED_PORTE_MASK      EQU     LED_RED_MASK
+
 ;Max length of queue
 Q_BUF_SZ				EQU 4
 Q_REC_SZ                EQU 18
@@ -224,9 +273,220 @@ SERVO_POSITIONS			EQU	5
 			EXPORT GetChar
 			EXPORT PutChar
 			EXPORT PutNumHex 
+			EXPORT GetCount
 			
 			;Interrupt request handlers
 			EXPORT UART0_IRQHandler
+				
+				
+;--------------------------------------------
+InitLEDs
+;Initializes the LED configurations
+;--------------------------------------------
+            PUSH    {R0,R1,R2}
+            ;Enable Port D and E
+            LDR     R0,=SIM_SCGC5
+            LDR     R1,=(SIM_SCGC5_PORTD_MASK :OR: \
+                         SIM_SCGC5_PORTE_MASK)
+            LDR     R2,[R0,#0]
+            ORRS    R2,R2,R1
+            STR     R2,[R0,#0]
+            
+            ;Configure pin connections
+            LDR     R0,=PORTE_BASE
+            LDR     R1,=SET_PTE29_GPIO
+            STR     R1,[R0,#PORTE_PCR29_OFFSET]
+            
+            LDR     R0,=PORTD_BASE
+            LDR     R1,=SET_PTD5_GPIO
+            STR     R1,[R0,#PORTD_PCR5_OFFSET]
+            
+            ;Set data direction
+            LDR     R0,=FGPIOD_BASE
+            LDR     R1,=LED_PORTD_MASK
+            STR     R1,[R0,#GPIO_PDDR_OFFSET]
+            
+            LDR     R0,=FGPIOE_BASE
+            LDR     R1,=LED_PORTE_MASK
+            STR     R1,[R0,#GPIO_PDDR_OFFSET]
+            
+
+            POP     {R0,R1,R2}
+            BX      LR
+
+SetLED
+; Turns an LED on or off
+; Inputs: R0 - bit 0 set for green on, bit 1 
+;              set for red on bits cleared to
+;              mean off
+; Outputs: none
+;---------------------------------------------
+            PUSH    {R0,R1,R2}
+            
+            ;Setup addresses for green LED
+            LDR     R1,=FGPIOD_BASE
+            LDR     R2,=LED_GREEN_MASK
+            
+            ;Shift LSB out to get green val into carry
+            LSRS    R0,R0,#1 
+            
+            
+            ;Carry set means green on
+            BCS     GreenOn
+            ;else set green off
+            STR     R2,[R1,#GPIO_PSOR_OFFSET]
+            B       CheckRed
+    
+            ;Turn green LED on
+GreenOn     
+            STR     R2,[R1,#GPIO_PCOR_OFFSET]
+        
+            ;Now set red on or off
+CheckRed
+            ;Setup addresses for red LED
+            LDR     R1,=FGPIOE_BASE
+            LDR     R2,=LED_RED_MASK
+            
+            ;Shift LSB out to get red val into carry
+            LSRS    R0,R0,#1 
+            
+            ;Carry set means red on
+            BCS     RedOn
+            ;else turn red off
+            STR     R2,[R1,#GPIO_PSOR_OFFSET]
+            B       Done
+  
+            ;Turn red LED on
+RedOn
+            STR     R2,[R1,#GPIO_PCOR_OFFSET]
+
+Done
+            POP     {R0,R1,R2}
+            BX      LR
+
+
+
+;--------------------------------------------
+IsKeyPressed
+
+;IsKeyPressed: Subroutine to determine if a key has
+;been pressed by checking the RDRF bit of UART0. 
+;If the recieve data register has a value then the sub
+;will return a value of 1, and otherwise will return
+;a value of zero. 
+
+;Inputs - N/A
+;Outputs:
+;  R0 - Status of keypress (1 if key and 0 otherwise)
+;--------------------------------------------
+
+			LDR R0, =UART0_BASE
+			
+			;Check if TDRE Bit is set
+			LDRB R1,[R0,#UART0_S1_OFFSET]
+			MOVS R2, #TDRE_CHARSET_MASK
+			
+			ANDS R1, R1, R2
+			CMP R1, #0
+			BEQ CHAR_NOT_SET
+
+CHAR_SET
+			MOVS R0, #1
+			B END_CHECK_CHAR
+			
+CHAR_NOT_SET
+			MOVS R0, #0
+			
+END_CHECK_CHAR
+			BX LR
+
+;--------------------------------------------               
+Init_PIT_IRQ
+;Init_PIT_IRQ: Initalize the PIT to generate an 
+;interrupt from channel 0 every 0.01 seconds. 
+
+;The timer start value stored to PIT_LDVAL 
+;will be equal to 239,999 to simulate
+;the 0.01 interval between interrupts
+
+;the PIT interrupts will be initalized on the NVIC
+;with the highest priority level of zero
+
+;Inputs: N/A
+;Outputs: N/A
+;---------------------------------------------
+
+                  CPSID I
+                  
+                  PUSH {R0, R1, R2, LR}
+                  
+                  LDR R0, =SIM_SCGC6
+                  LDR R1, =SIM_SCGC6_PIT_MASK
+                  
+                  LDR R2, [R0, #0]
+                  
+                  ;Set only the PIT bit on SIM_SCGC6
+                  ORRS R2, R2, R1
+                  
+                  ;Store set bit back on to the register
+                  STR R2, [R0, #0]
+                  
+                  ;Disable timer 0 TODO: Is this appropriate?
+                  LDR R0, =PIT_CH0_BASE
+                  LDR R1, =PIT_TCTRL_TEN_MASK
+                  LDR R2, [R0, #PIT_TCTRL_OFFSET]
+                  BICS R2, R2, R1
+                  STR R2, [R0, #PIT_TCTRL_OFFSET]
+                  
+                  ;Enable the PIT timer module
+                  LDR R0, =PIT_BASE
+                  
+                  ;Enable the FRZ to stop timer in debug mode
+                  LDR R1, =PIT_MCR_EN_FRZ
+                  
+                  STR R1, [R0, #PIT_MCR_OFFSET]
+                  
+                  ;Request interrupts every 0.01 seconds
+                  LDR R0, =PIT_CH0_BASE
+                  LDR R1, =PIT_LDVAL_10ms ;239,999
+                  
+                  STR R1, [R0, #PIT_LDVAL_OFFSET]
+                  
+                  ;Enable PIT timer channel 0 for interrupts
+                  LDR R0, =PIT_CH0_BASE
+                  
+                  ;Interrupt enabled mask to write to the register
+                  MOVS R1, #PIT_TCTRL_CH_IE
+                  STR R1, [R0, #PIT_TCTRL_OFFSET]
+                  
+                  ;Initalize PIT Interrupts in the NVIC
+                  ;Make sure they are set to the highest priority (0)
+                  
+                  ;Unmask PIT Interrupts
+                  LDR R0, =NVIC_ISER
+                  LDR R1, =PIT_IRQ_MASK
+                  STR R1, [R0, #0]
+                  
+                  ;Set PIT Interrupt Priority
+                  LDR R0, =PIT_IPR
+                  LDR R1, =(PIT_IRQ_PRI << PIT_PRI_POS)
+                  STR R1, [R0, #0]
+                  
+                  CPSIE I
+                  
+                  POP {R0, R1, R2, PC}
+				  LTORG
+
+;-------------------------------------------
+GetCount
+;Grab count from memory and store it in the address passed to R0
+            PUSH  {R1}
+            LDR   R1,=Count
+            LDR   R1,[R1,#0]
+            STR   R1,[R0,#0]
+            POP   {R1}
+            BX    LR
+                
                 
 ;-------------------------------------------
 AddIntMultiU
@@ -1276,6 +1536,7 @@ QueueRecord SPACE Q_REC_SZ
 
 StringReversal		SPACE 2
 APSRState           SPACE 2
+Count				SPACE 4
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
