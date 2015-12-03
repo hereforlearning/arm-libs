@@ -304,6 +304,7 @@ int main (void) {
 	
   __asm("CPSIE   I");  /* unmask interrupts */
 
+	for(;;) {
 		
 		//1: Display the instructions for the game
     PutStringSB("            Welcome to the World's Greatest Game!\r\n",MAX_STRING);
@@ -326,6 +327,7 @@ int main (void) {
     //2: Prompt player to start game 
     PutStringSB("TO BEGIN, PRESS ANY KEY\r\n", MAX_STRING);
 		
+		GetChar();
 		
     //3: After a key is pressed, program runs each game round "i"
 		for(i = 0; i < NUM_ROUNDS; i++){
@@ -389,6 +391,7 @@ int main (void) {
     P
     
     //5: At end of game, repeat whole process
+	}
 
 } /* main */
 

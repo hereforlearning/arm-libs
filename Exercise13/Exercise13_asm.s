@@ -208,10 +208,8 @@ PIT_TCTRL_CH_IE  EQU  (PIT_TCTRL_TEN_MASK :OR: PIT_TCTRL_TIE_MASK)
 PIT_IRQ_PRI        EQU 0
 ;---------------------------------------------------
 
-TDRE_CHARSET_MASK		EQU 0x80
-    
-    
-    
+RDRF_CHARSET_MASK		EQU 0x20
+      
 ;Led Shtuff
 
 ;Port D
@@ -274,10 +272,27 @@ SERVO_POSITIONS			EQU	5
 			EXPORT PutChar
 			EXPORT PutNumHex 
 			EXPORT GetCount
+			EXPORT StartTimer
 			
 			;Interrupt request handlers
 			EXPORT UART0_IRQHandler
+			EXPORT PIT_IRQHandler
 				
+;-------------------------------------------
+StartTimer
+;Begin counting PIT interrupts and clear the
+;Already existing Count variable to zero.
+
+			PUSH {R0}
+			
+			;Initalize RunStopwatch to 1 and Count to 0
+			LDR R0, =Count
+			MOVS R1, #0
+			STR R1, [R0, #0]
+			
+			LDR R0, =RunStopWatch
+			MOVS R1, #1
+			STRB R1, [R0, #0]
 				
 ;--------------------------------------------
 InitLEDs
@@ -313,7 +328,7 @@ InitLEDs
 
             POP     {R0,R1,R2}
             BX      LR
-
+;---------------------------------------------
 SetLED
 ; Turns an LED on or off
 ; Inputs: R0 - bit 0 set for green on, bit 1 
@@ -365,7 +380,6 @@ Done
             BX      LR
 
 
-
 ;--------------------------------------------
 IsKeyPressed
 
@@ -384,7 +398,7 @@ IsKeyPressed
 			
 			;Check if TDRE Bit is set
 			LDRB R1,[R0,#UART0_S1_OFFSET]
-			MOVS R2, #TDRE_CHARSET_MASK
+			MOVS R2, #RDRF_CHARSET_MASK
 			
 			ANDS R1, R1, R2
 			CMP R1, #0
@@ -398,6 +412,41 @@ CHAR_NOT_SET
 			MOVS R0, #0
 			
 END_CHECK_CHAR
+			BX LR
+			
+;-------------------------------------------
+;PIT_ISR
+;Timer Interrupt Service Routine
+
+;On a PIT interrupt, if the variable RunStopWatch
+;is not equal to zero, the word variable Count is incremented
+;Otherwise, the count variable is unchanged.
+
+;The ISR then clears the interrupt condition and returns
+;-----------------------------------------
+PIT_IRQHandler
+			
+			LDR R0, =RunStopWatch
+			LDRB R0, [R0, #0]
+			
+			CMP R0, #0
+			BNE INCR_COUNT
+			B END_PIT_ISR
+			
+INCR_COUNT
+			;Add #1 to count if stopwatch is running
+			LDR R0, =Count
+			LDR R1, [R0, #0]
+			ADDS R1, R1, #1
+			STR R1, [R0, #0]
+
+END_PIT_ISR
+			;Clear interrupt condition
+			LDR R0, =PIT_CH0_BASE
+			LDR R1, =PIT_TFLG_TIF_MASK
+			
+			STR R1, [R0, #PIT_TFLG_OFFSET]
+			
 			BX LR
 
 ;--------------------------------------------               
@@ -1536,7 +1585,9 @@ QueueRecord SPACE Q_REC_SZ
 
 StringReversal		SPACE 2
 APSRState           SPACE 2
+
 Count				SPACE 4
+RunStopWatch 		SPACE 2
 	
 ;>>>>>   end variables here <<<<<
             ALIGN
