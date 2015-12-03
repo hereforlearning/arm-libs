@@ -288,7 +288,8 @@ int getScore(char keyPressed, char lightShown, int round) {
 
 int main (void) {
 	
-	int i;
+	int i, selection, count, result, score;
+  char keyPressed;
 	
 	/* mask interrupts */
   __asm("CPSID   I");  
@@ -298,6 +299,8 @@ int main (void) {
 	
 	/* Fire up the UART */
 	Init_UART0_IRQ ();
+  
+  InitLeds();
 	
   __asm("CPSIE   I");  /* unmask interrupts */
 
@@ -321,17 +324,69 @@ int main (void) {
     PutStringSB("Good luck. Countless lives may or may not be in your hands now.\r\n",MAX_STRING);
     PutStringSB("----------------------------------------------------------\r\n",MAX_STRING);
     //2: Prompt player to start game 
-    PutStringSB("TO BEGIN, PRESS ANY KEY\n", MAX_STRING);
+    PutStringSB("TO BEGIN, PRESS ANY KEY\r\n", MAX_STRING);
 		
 		
     //3: After a key is pressed, program runs each game round "i"
-    
 		for(i = 0; i < NUM_ROUNDS; i++){
+      //a: get a random number 0-3
+      selection = getRandom();
+      //a: light the LEDs
+      if(selection == NONE){
+        SetLED(0b00);
+      } else if(selection == GREEN) {
+        SetLED(0b01);
+      } else if(selection == RED) {
+        SetLED(0b10);
+      } else if(selection == GREEN) {
+        SetLED(0b11);
+      }
       
+      //b: print a ">" prompt
+      PutStringSB(">", MAX_STRING);
+      //c: player has 11-i seconds to press the key
+      keyPressed = 'x';
+      while(GetCount(&count) < (11-i)*100){
+        if(IsKeyPressed()){
+          keyPressed = GetChar();
+          break;
+        }
+      }
+      
+      //d: echo key, print correct or wrong, show color combination of LEDs
+      PutChar(keyPressed);
+      PutStringSB("\r\n", MAX_STRING);
+      result = getScore(keyPressed, selection, i); //get score
+      
+      //negative implies wrong
+      if(result < 0) {
+        PutStringSB("Ding dong, that was wrong.", MAX_STRING);
+      } else {
+        PutStringSB("Correct! We live... for now", MAX_STRING);
+      }
+      //Echo color combination shown
+      PutStringSB("LEDs shown were: ",MAX_STRING);
+      if(selection == NONE){
+        PutStringSB("None");
+      } else if(selection == GREEN) {
+        PutStringSB("Green");
+      } else if(selection == RED) {
+        PutStringSB("Red");
+      } else if(selection == BOTH) {
+        PutStringSB("Green & Red");
+      }
+      
+      //Then, add to score
+      score += result;
+      
+      //e: Move to the next round when EITHER:
+      //   - time for current round expires
+      //   - player types character
+      while(GetCount(&count) < (11-i)*100 && !IsKeyPressed());
     }
     
     //4: After last round, display score
-    
+    P
     
     //5: At end of game, repeat whole process
 
