@@ -249,9 +249,7 @@
 *
 * @return int - random number between 0 and 3 based on timer state
 */
-int getRandom(){
-  UInt32 count;
-  GetCount(&count); //Update count variable
+int getRandom(int count){
   return count % 4;
 }
 
@@ -280,16 +278,17 @@ int getScore(char keyPressed, char lightShown, int round) {
 	
 	//No input was provided for a given round
 	} else if(keyPressed == 'x'){
-		return -1;
+		return 0;
 	}
 	
-	return -1; //wrong key must have been pressed
+	return 0; //wrong key must have been pressed
 }
 
 int main (void) {
-	UInt32 count;
 	int i, selection, result, score;
   char keyPressed;
+	int keyResult;
+	int userSelectTime;
 	
 	/* mask interrupts */
   __asm("CPSID   I");  
@@ -327,15 +326,19 @@ int main (void) {
     //2: Prompt player to start game 
     PutStringSB("TO BEGIN, PRESS ANY KEY\r\n", MAX_STRING);
 		
+		StartTimer();
 		GetChar();
+		
+		userSelectTime = getCount();
 		
     //3: After a key is pressed, program runs each game round "i"
 		for(i = 0; i < NUM_ROUNDS; i++){
 			//Start timer and reset
+      //a: get a random number 0-3
+      selection = getRandom(userSelectTime);
+			
 			StartTimer();
 			
-      //a: get a random number 0-3
-      selection = getRandom();
       //a: light the LEDs
       if(selection == NONE){
         SetLED(0);
@@ -343,7 +346,7 @@ int main (void) {
         SetLED(1);
       } else if(selection == RED) {
         SetLED(2);
-      } else if(selection == GREEN) {
+      } else {
         SetLED(3);
       }
       
@@ -351,12 +354,15 @@ int main (void) {
       PutStringSB(">", MAX_STRING);
       //c: player has 11-i seconds to press the key
       keyPressed = 'x';
-      while(GetCount(&count) < (11-i)*100){
-        if(IsKeyPressed()){
+      while(getCount() < (11-i)*100){
+				keyResult = IsKeyPressed();
+        if(keyResult != 0) {
           keyPressed = GetChar();
           break;
         }
       }
+			
+			userSelectTime = getCount();
       
       //d: echo key, print correct or wrong, show color combination of LEDs
       PutChar(keyPressed);
@@ -364,7 +370,7 @@ int main (void) {
       result = getScore(keyPressed, selection, i); //get score
       
       //negative implies wrong
-      if(result < 0) {
+      if(result <= 0) {
         PutStringSB("Ding dong, that was wrong.", MAX_STRING);
       } else {
         PutStringSB("Correct! We live... for now", MAX_STRING);
@@ -387,12 +393,20 @@ int main (void) {
       //e: Move to the next round when EITHER:
       //   - time for current round expires
       //   - player types character
-      while(GetCount(&count) < (11-i)*100 && !IsKeyPressed());
+      while(getCount() < (11-i)*100){
+				keyResult = IsKeyPressed();
+        if(keyResult != 0) {
+          keyPressed = GetChar();
+          break;
+        }
+      }
+			PutStringSB("\r\n", MAX_STRING);
     }
     
     //4: After last round, display score
-    
-    //5: At end of game, repeat whole process
+		PutStringSB("Your score is: ", MAX_STRING);
+    PutNumU(score);
+		PutStringSB("\r\n\r\n\r\n-----------------------------------------\r\n", MAX_STRING);
 	}
 
 } /* main */

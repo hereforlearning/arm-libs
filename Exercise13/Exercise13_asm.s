@@ -271,10 +271,11 @@ SERVO_POSITIONS			EQU	5
 			EXPORT GetChar
 			EXPORT PutChar
 			EXPORT PutNumHex 
-			EXPORT GetCount
+			EXPORT getCount
 			EXPORT StartTimer
 			EXPORT SetLED
 			EXPORT InitLEDs
+			EXPORT PutNumU
 			
 			;Interrupt request handlers
 			EXPORT UART0_IRQHandler
@@ -401,25 +402,9 @@ IsKeyPressed
 ;Outputs:
 ;  R0 - Status of keypress (1 if key and 0 otherwise)
 ;--------------------------------------------
-
-			LDR R0, =UART0_BASE
+			LDR R0, =RxQueueRecord
+			LDRB R0,[R0,#NUM_ENQD]
 			
-			;Check if TDRE Bit is set
-			LDRB R1,[R0,#UART0_S1_OFFSET]
-			MOVS R2, #RDRF_CHARSET_MASK
-			
-			ANDS R1, R1, R2
-			CMP R1, #0
-			BEQ CHAR_NOT_SET
-
-CHAR_SET
-			MOVS R0, #1
-			B END_CHECK_CHAR
-			
-CHAR_NOT_SET
-			MOVS R0, #0
-			
-END_CHECK_CHAR
 			BX LR
 			
 ;-------------------------------------------
@@ -535,16 +520,15 @@ Init_PIT_IRQ
 				  LTORG
 
 ;-------------------------------------------
-GetCount
+getCount
 ;Grab count from memory and store it in the address passed to R0
             PUSH  {R1}
 			
             LDR   R1,=Count
             LDR   R1,[R1,#0]
-            STR   R1,[R0,#0]
 			
 			;Move count value to return.
-			MOVS R0, R1
+			MOVS  R0,R1
             POP   {R1}
 			
             BX    LR
